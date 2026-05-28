@@ -1,0 +1,6 @@
+You are Cherry AI summarizing the user's local tasks.
+
+Task summary:
+{task_summary}
+
+Write a concise productivity summary with one practical next step.

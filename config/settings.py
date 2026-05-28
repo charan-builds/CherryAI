@@ -34,6 +34,15 @@ def _as_float(value: str | None, default: float) -> float:
         return default
 
 
+def _as_int(value: str | None, default: int) -> int:
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 @dataclass(frozen=True)
 class AppSettings:
     """Typed runtime settings shared across the application."""
@@ -49,8 +58,14 @@ class AppSettings:
     database_url: str
     ollama_host: str
     ollama_model: str
+    ollama_timeout_seconds: float
+    ollama_max_retries: int
     pyautogui_failsafe: bool
     pyautogui_pause_seconds: float
+    observer_enabled: bool
+    observer_poll_interval_seconds: float
+    idle_threshold_seconds: float
+    distraction_keywords: tuple[str, ...]
 
 
 def load_settings() -> AppSettings:
@@ -77,6 +92,14 @@ def load_settings() -> AppSettings:
         database_url=os.getenv("CHERRY_DATABASE_URL", default_database_url),
         ollama_host=os.getenv("CHERRY_OLLAMA_HOST", "http://localhost:11434"),
         ollama_model=os.getenv("CHERRY_OLLAMA_MODEL", "llama3.1"),
+        ollama_timeout_seconds=_as_float(
+            os.getenv("CHERRY_OLLAMA_TIMEOUT_SECONDS"),
+            default=30.0,
+        ),
+        ollama_max_retries=_as_int(
+            os.getenv("CHERRY_OLLAMA_MAX_RETRIES"),
+            default=1,
+        ),
         pyautogui_failsafe=_as_bool(
             os.getenv("CHERRY_PYAUTOGUI_FAILSAFE"),
             default=True,
@@ -84,5 +107,25 @@ def load_settings() -> AppSettings:
         pyautogui_pause_seconds=_as_float(
             os.getenv("CHERRY_PYAUTOGUI_PAUSE_SECONDS"),
             default=0.1,
+        ),
+        observer_enabled=_as_bool(
+            os.getenv("CHERRY_OBSERVER_ENABLED"),
+            default=True,
+        ),
+        observer_poll_interval_seconds=_as_float(
+            os.getenv("CHERRY_OBSERVER_POLL_INTERVAL_SECONDS"),
+            default=2.0,
+        ),
+        idle_threshold_seconds=_as_float(
+            os.getenv("CHERRY_IDLE_THRESHOLD_SECONDS"),
+            default=300.0,
+        ),
+        distraction_keywords=tuple(
+            keyword.strip()
+            for keyword in os.getenv(
+                "CHERRY_DISTRACTION_KEYWORDS",
+                "YouTube,Netflix,Instagram,TikTok,Reddit",
+            ).split(",")
+            if keyword.strip()
         ),
     )

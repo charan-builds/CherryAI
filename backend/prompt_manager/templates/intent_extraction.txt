@@ -1,0 +1,17 @@
+Extract the user's intent as JSON only.
+
+Supported intents:
+- create_task
+- list_tasks
+- summarize_tasks
+- motivational_response
+- general_chat
+
+For create_task, include title, description, and priority when available.
+Priority must be one of: low, normal, high.
+
+Return this shape:
+{{"intent":"create_task","title":"study numpy","description":"","priority":"normal"}}
+
+User message:
+{user_message}

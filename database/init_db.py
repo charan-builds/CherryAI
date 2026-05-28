@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 
 from config.settings import AppSettings
+from database.ai_models import AIInteraction  # noqa: F401
 from database.base import Base
 from database.models import AppMetadata
+from database.observer_models import ActivityLog, ObserverEventLog, StudySession  # noqa: F401
 from database.session import create_database_engine, create_session_factory
 from database.task_models import Task  # noqa: F401 - imported so metadata is registered
 

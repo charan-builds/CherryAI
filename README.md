@@ -22,12 +22,24 @@ Run a startup check without opening the desktop window:
 .\scripts\run.ps1 -NoGui
 ```
 
+If PowerShell script execution is disabled, use:
+
+```powershell
+.\.venv\Scripts\python.exe main.py --no-gui
+```
+
 ## Project Structure
 
 ```text
 Cherry AI/
 ├── backend/                 # Agentic engines and orchestration services
 │   ├── ai_engine/           # Ollama/local model access
+│   ├── ollama_service/      # Ollama connectivity, retries, timeout handling
+│   ├── prompt_manager/      # Reusable prompt templates
+│   ├── intent_parser/       # Structured intent extraction
+│   ├── action_router/       # Intent-to-service routing
+│   ├── ai_response_handler/ # Conversational response formatting
+│   ├── chat_session_manager/# Persisted AI interaction history
 │   ├── planner_engine/      # Goal decomposition and planning
 │   ├── automation_engine/   # PyAutoGUI desktop automation
 │   ├── observer_engine/     # Local context and system observation
@@ -44,6 +56,7 @@ Cherry AI/
 │   ├── styles/              # Theme-ready QSS stylesheets
 │   ├── dashboard/           # Assistant workspace pages
 │   ├── tasks/               # Task management page
+│   ├── study/               # Study Mode and observer status page
 │   ├── notifications/       # UI notification coordination
 │   └── assets/              # Future frontend assets
 ├── logs/                    # Runtime logs
@@ -67,6 +80,8 @@ Important defaults:
 - SQL echo logging: disabled unless `CHERRY_SQL_ECHO=true`
 - Ollama host: `http://localhost:11434`
 - Ollama model: `llama3.1`
+- Ollama timeout: `30` seconds
+- Ollama retries: `1`
 
 ## Development Commands
 
@@ -87,3 +102,7 @@ The initial app opens a PyQt window, initializes logging, creates the local SQLi
 The frontend now includes a dark themed desktop shell with sidebar navigation, a dashboard chat console, scrollable response panel, command input, startup status indicator, and placeholder responses ready for future Ollama streaming.
 
 The Tasks section is a functional SQLite-backed productivity system with task creation, persisted task cards, completion/reopen workflow, filtering, statistics, and daily summaries.
+
+The Dashboard chat now uses the local AI runtime: Ollama-powered intent extraction with fallback parsing, task routing, natural responses, persistent interaction history, and non-blocking PyQt worker execution.
+
+Study Mode now uses the Observer Engine for active app tracking, idle/focus metrics, distraction detection, study session start/stop, and persisted behavioral events.

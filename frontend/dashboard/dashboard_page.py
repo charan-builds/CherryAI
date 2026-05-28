@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QFrame, QVBoxLayout
+from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
+from backend.observer_engine.schemas import ObserverStatus
 from frontend.widgets.chat_display import ChatDisplayArea
 from frontend.widgets.command_input import CommandInputArea
 
@@ -25,7 +26,10 @@ class DashboardPage(QFrame):
         self.chat_display = ChatDisplayArea()
         self.command_input = CommandInputArea()
         self.command_input.submitted.connect(self.command_submitted.emit)
+        self.observer_summary = QLabel("Activity: waiting for observer")
+        self.observer_summary.setObjectName("DashboardObserverSummary")
 
+        layout.addWidget(self.observer_summary)
         layout.addWidget(self.chat_display, stretch=1)
         layout.addWidget(self.command_input)
 
@@ -52,3 +56,11 @@ class DashboardPage(QFrame):
         """Hide loading state in the chat and input."""
         self.chat_display.hide_loading()
         self.command_input.set_loading(False)
+
+    def update_observer_summary(self, status: ObserverStatus) -> None:
+        """Update dashboard activity summary."""
+        state = "idle" if status.is_idle else "active"
+        self.observer_summary.setText(
+            f"Activity: {status.active_app} | {state} | "
+            f"Focus {int(status.focus_seconds)}s"
+        )

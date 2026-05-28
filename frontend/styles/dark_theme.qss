@@ -97,7 +97,8 @@ QStackedWidget#ContentStack {
 
 QFrame#DashboardPage,
 QFrame#PlaceholderPage,
-QFrame#TasksPage {
+QFrame#TasksPage,
+QFrame#StudyModePage {
     background: transparent;
 }
 
@@ -106,7 +107,9 @@ QFrame#PlaceholderSurface,
 QFrame#TaskForm,
 QFrame#TaskSummary,
 QFrame#TaskListPanel,
-QFrame#TaskFilterBar {
+QFrame#TaskFilterBar,
+QFrame#StudyPanel,
+QFrame#StudyMetricGrid {
     background: #17191f;
     border: 1px solid #2a2d35;
     border-radius: 8px;
@@ -124,8 +127,16 @@ QLabel#PanelTitle {
 }
 
 QLabel#PanelSubtitle,
-QLabel#PlaceholderBody {
+QLabel#PlaceholderBody,
+QLabel#DashboardObserverSummary {
     color: #a9afbd;
+}
+
+QLabel#DashboardObserverSummary {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+    padding: 10px 14px;
 }
 
 QScrollArea#ResponseScrollArea {
@@ -192,6 +203,7 @@ QLineEdit#CommandInput:focus {
 }
 
 QLineEdit#TaskTitleInput,
+QLineEdit#StudyTopicInput,
 QTextEdit#TaskDescriptionInput,
 QComboBox#TaskPriorityCombo,
 QComboBox#TaskFilterCombo {
@@ -207,6 +219,7 @@ QTextEdit#TaskDescriptionInput {
 }
 
 QLineEdit#TaskTitleInput:focus,
+QLineEdit#StudyTopicInput:focus,
 QTextEdit#TaskDescriptionInput:focus,
 QComboBox#TaskPriorityCombo:focus,
 QComboBox#TaskFilterCombo:focus {
@@ -323,6 +336,34 @@ QLabel#TaskStatLabel {
     font-size: 12px;
     font-weight: 700;
     padding: 7px 10px;
+}
+
+QFrame#StudyMetricCard {
+    background: #222631;
+    border: 1px solid #343946;
+    border-radius: 8px;
+}
+
+QLabel#StudyMetricValue {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#StudyLiveValue {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px 12px;
+}
+
+QLabel#StudySessionStatus {
+    background: #20242d;
+    border: 1px solid #303642;
+    border-radius: 8px;
+    color: #d8d2cc;
+    padding: 10px 12px;
 }
 
 QCheckBox#TaskCompleteCheck {

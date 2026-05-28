@@ -22,6 +22,12 @@ Cherry AI starts as a local-first Windows desktop assistant and should grow into
 `backend/` is split by capability:
 
 - `ai_engine`: local model access through Ollama
+- `ollama_service`: local Ollama connectivity, retries, timeout handling
+- `prompt_manager`: reusable prompt templates stored outside business logic
+- `intent_parser`: structured JSON-style intent extraction and fallback parsing
+- `action_router`: maps AI intents to backend services
+- `ai_response_handler`: natural-language response formatting
+- `chat_session_manager`: persisted chat session interaction history
 - `planner_engine`: goal decomposition and plan creation
 - `automation_engine`: desktop control through PyAutoGUI
 - `observer_engine`: local state and context gathering
@@ -34,9 +40,13 @@ Cherry AI starts as a local-first Windows desktop assistant and should grow into
 
 The task engine is now backed by SQLite through a repository layer. The service owns validation, CRUD, completion workflow, filters, daily summaries, logging, and placeholder analytics events.
 
+The observer engine is split into active-window, idle, focus, study-session, event-bus, and state-manager modules. It persists activity logs, study sessions, and observer events while exposing a small polling API for the desktop UI.
+
+The AI runtime follows an intent-routing pattern: the AI extracts intent, the action router calls backend services, and the response handler formats the final conversational reply. UI and database logic stay outside direct model control.
+
 ### Database
 
-`database/` owns SQLAlchemy setup. `init_db.py` creates the schema and seeds a metadata record. The task model lives in `database/task_models.py`. Future durable entities should be added as ORM models and then migrated through Alembic when schema evolution begins.
+`database/` owns SQLAlchemy setup. `init_db.py` creates the schema and seeds a metadata record. The task model lives in `database/task_models.py`, AI chat history lives in `database/ai_models.py`, and observer data lives in `database/observer_models.py`. Future durable entities should be added as ORM models and then migrated through Alembic when schema evolution begins.
 
 ### Configuration
 

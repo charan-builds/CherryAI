@@ -15,6 +15,12 @@ def make_test_settings(tmp_path) -> AppSettings:
         database_url=f"sqlite:///{db_path.as_posix()}",
         ollama_host="http://localhost:11434",
         ollama_model="test-model",
+        ollama_timeout_seconds=1.0,
+        ollama_max_retries=0,
         pyautogui_failsafe=True,
         pyautogui_pause_seconds=0.1,
+        observer_enabled=True,
+        observer_poll_interval_seconds=0.1,
+        idle_threshold_seconds=60.0,
+        distraction_keywords=("YouTube", "Reddit"),
     )

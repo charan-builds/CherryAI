@@ -42,6 +42,14 @@ It does not define low-level widget styling or message rendering.
 
 `frontend/tasks/tasks_page.py` replaces the original Tasks placeholder with a functional productivity workspace. It loads persisted tasks on startup, creates tasks, renders task cards, handles completion and reopening, supports status/priority filtering, and refreshes statistics dynamically.
 
+## Dashboard AI Chat
+
+`frontend/dashboard/chat_worker.py` runs dashboard messages on a background `QThread`. This prevents Ollama requests, intent parsing, routing, and response persistence from blocking the PyQt UI thread. The dashboard shows a loading/typing indicator while the worker is active.
+
+## Study Mode
+
+`frontend/study/study_page.py` integrates with the observer engine. It supports starting and stopping study sessions, displays current active app/window, and renders live focus, idle, app-switch, and distraction metrics. The main window updates it through a lightweight `QTimer`.
+
 ## Theme System
 
 `frontend/styles/theme.py` loads QSS files by theme name. The default `dark_theme.qss` gives the interface a modern dark appearance while keeping style concerns out of widget classes.

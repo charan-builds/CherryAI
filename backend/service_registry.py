@@ -31,10 +31,10 @@ class ServiceRegistry:
 
 def build_services(settings: AppSettings) -> ServiceRegistry:
     """Instantiate backend engines with shared settings."""
-    ai = AIEngine(settings=settings)
     memory = MemoryEngine(settings=settings)
     analytics = AnalyticsEngine(settings=settings)
     tasks = TaskEngine(settings=settings, analytics_engine=analytics)
+    ai = AIEngine(settings=settings, task_engine=tasks)
 
     return ServiceRegistry(
         ai=ai,

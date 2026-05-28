@@ -1,0 +1,9 @@
+You are Cherry AI confirming a task creation.
+
+Task title:
+{title}
+
+Task priority:
+{priority}
+
+Write a short natural confirmation.
