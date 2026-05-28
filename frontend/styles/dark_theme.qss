@@ -1,0 +1,389 @@
+QMainWindow {
+    background: #101114;
+}
+
+QWidget {
+    color: #e7e1dc;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+}
+
+QFrame#AppRoot {
+    background: #101114;
+}
+
+QFrame#Sidebar {
+    background: #17191f;
+    border-right: 1px solid #2a2d35;
+}
+
+QLabel#BrandTitle {
+    color: #fff2f4;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+QLabel#BrandSubtitle {
+    color: #9fa5b3;
+    font-size: 12px;
+}
+
+QPushButton#SidebarButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #b9c0cf;
+    font-weight: 600;
+    padding: 11px 12px;
+    text-align: left;
+}
+
+QPushButton#SidebarButton:hover {
+    background: #222631;
+    color: #f3eee9;
+}
+
+QPushButton#SidebarButton:checked {
+    background: #3a2028;
+    border: 1px solid #7f3441;
+    color: #ffffff;
+}
+
+QFrame#MainContent {
+    background: #101114;
+}
+
+QFrame#TopBar {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QLabel#TopBarTitle {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+QLabel#TopBarSubtitle {
+    color: #a9afbd;
+    font-size: 13px;
+}
+
+QLabel#StatusIndicator {
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 12px;
+}
+
+QLabel#StatusIndicator[state="starting"],
+QLabel#StatusIndicator[state="loading"] {
+    background: #2f2a1c;
+    border: 1px solid #7c6125;
+    color: #f6d27a;
+}
+
+QLabel#StatusIndicator[state="ready"] {
+    background: #173326;
+    border: 1px solid #357653;
+    color: #9ce0b9;
+}
+
+QStackedWidget#ContentStack {
+    background: transparent;
+    border: none;
+}
+
+QFrame#DashboardPage,
+QFrame#PlaceholderPage,
+QFrame#TasksPage {
+    background: transparent;
+}
+
+QFrame#ChatDisplayArea,
+QFrame#PlaceholderSurface,
+QFrame#TaskForm,
+QFrame#TaskSummary,
+QFrame#TaskListPanel,
+QFrame#TaskFilterBar {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QFrame#TaskSidePanel {
+    background: transparent;
+    border: none;
+}
+
+QLabel#PanelTitle {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+QLabel#PanelSubtitle,
+QLabel#PlaceholderBody {
+    color: #a9afbd;
+}
+
+QScrollArea#ResponseScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QWidget#ResponseViewport {
+    background: transparent;
+}
+
+QFrame#MessageBubble {
+    border-radius: 8px;
+    padding: 0;
+}
+
+QFrame#MessageBubble[role="system"] {
+    background: #20242d;
+    border: 1px solid #303642;
+}
+
+QFrame#MessageBubble[role="user"] {
+    background: #2d2230;
+    border: 1px solid #6f3448;
+}
+
+QFrame#MessageBubble[role="assistant"] {
+    background: #1f2930;
+    border: 1px solid #315569;
+}
+
+QFrame#MessageBubble[role="loading"] {
+    background: #28261f;
+    border: 1px solid #6b5c32;
+}
+
+QLabel#MessageTitle {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QLabel#MessageBody {
+    color: #ded8d2;
+    line-height: 150%;
+}
+
+QFrame#CommandInputArea {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QLineEdit#CommandInput {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 12px 14px;
+}
+
+QLineEdit#CommandInput:focus {
+    border: 1px solid #b74a5f;
+}
+
+QLineEdit#TaskTitleInput,
+QTextEdit#TaskDescriptionInput,
+QComboBox#TaskPriorityCombo,
+QComboBox#TaskFilterCombo {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px 12px;
+}
+
+QTextEdit#TaskDescriptionInput {
+    selection-background-color: #b74a5f;
+}
+
+QLineEdit#TaskTitleInput:focus,
+QTextEdit#TaskDescriptionInput:focus,
+QComboBox#TaskPriorityCombo:focus,
+QComboBox#TaskFilterCombo:focus {
+    border: 1px solid #b74a5f;
+}
+
+QComboBox#TaskPriorityCombo::drop-down,
+QComboBox#TaskFilterCombo::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox#TaskPriorityCombo QAbstractItemView,
+QComboBox#TaskFilterCombo QAbstractItemView {
+    background: #17191f;
+    border: 1px solid #343946;
+    selection-background-color: #3a2028;
+    color: #ffffff;
+}
+
+QPushButton#SendButton {
+    background: #a83247;
+    border: 1px solid #c55367;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    min-width: 92px;
+    padding: 12px 18px;
+}
+
+QPushButton#SendButton:hover {
+    background: #bd3e54;
+}
+
+QPushButton#SendButton:disabled {
+    background: #3b3036;
+    border: 1px solid #4a3a42;
+    color: #8f8790;
+}
+
+QPushButton#TaskPrimaryButton,
+QPushButton#TaskSecondaryButton,
+QPushButton#TaskDangerButton {
+    border-radius: 8px;
+    font-weight: 700;
+    padding: 10px 14px;
+}
+
+QPushButton#TaskPrimaryButton {
+    background: #a83247;
+    border: 1px solid #c55367;
+    color: #ffffff;
+}
+
+QPushButton#TaskPrimaryButton:hover {
+    background: #bd3e54;
+}
+
+QPushButton#TaskSecondaryButton {
+    background: #222631;
+    border: 1px solid #343946;
+    color: #d8d2cc;
+}
+
+QPushButton#TaskSecondaryButton:hover {
+    background: #2d3340;
+}
+
+QPushButton#TaskDangerButton {
+    background: #2a1d21;
+    border: 1px solid #6d303b;
+    color: #f0b2bc;
+}
+
+QPushButton#TaskDangerButton:hover {
+    background: #3a2228;
+}
+
+QFrame#TaskCard {
+    background: #1d2028;
+    border: 1px solid #303642;
+    border-radius: 8px;
+}
+
+QFrame#TaskCard[priority="high"] {
+    border: 1px solid #8d4050;
+}
+
+QFrame#TaskCard[status="completed"] {
+    background: #17251d;
+    border: 1px solid #356548;
+}
+
+QLabel#TaskCardTitle {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+QLabel#TaskCardDescription {
+    color: #c9c4bf;
+}
+
+QLabel#TaskCardMeta,
+QLabel#TaskEmptyLabel {
+    color: #8f96a5;
+    font-size: 12px;
+}
+
+QLabel#TaskStatLabel {
+    background: #222631;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #d8d2cc;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 10px;
+}
+
+QCheckBox#TaskCompleteCheck {
+    spacing: 0;
+}
+
+QCheckBox#TaskCompleteCheck::indicator {
+    background: #111319;
+    border: 1px solid #4b5262;
+    border-radius: 7px;
+    height: 22px;
+    width: 22px;
+}
+
+QCheckBox#TaskCompleteCheck::indicator:checked {
+    background: #3b8a5d;
+    border: 1px solid #6ed092;
+}
+
+QScrollArea#TaskScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QWidget#TaskScrollViewport {
+    background: transparent;
+}
+
+QFrame#StatusFooter {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QLabel#FooterPrimary {
+    color: #d8d2cc;
+    font-size: 12px;
+}
+
+QLabel#FooterSecondary {
+    color: #8f96a5;
+    font-size: 12px;
+}
+
+QScrollBar:vertical {
+    background: transparent;
+    margin: 4px;
+    width: 10px;
+}
+
+QScrollBar::handle:vertical {
+    background: #3a3f4c;
+    border-radius: 5px;
+    min-height: 36px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #515869;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+}
