@@ -6,6 +6,7 @@ import logging
 from dataclasses import dataclass
 
 from backend.action_router.schemas import RoutedActionResult
+from backend.automation_engine.schemas import AutomationResult
 from backend.intent_parser.schemas import ParsedIntent
 from backend.ollama_service.service import OllamaGenerationError, OllamaService
 from backend.prompt_manager.service import PromptManager
@@ -27,6 +28,7 @@ class AIResponseHandler:
         parsed_intent: ParsedIntent,
         action_result: RoutedActionResult,
         history_text: str,
+        memory_context: str = "",
     ) -> str:
         """Return the final conversational response."""
         if not action_result.success:
@@ -43,13 +45,23 @@ class AIResponseHandler:
             return self._format_task_list(tasks)
 
         if parsed_intent.intent == "summarize_tasks":
-            return self._format_task_summary(action_result)
+            return self._format_task_summary(action_result, memory_context)
+
+        if parsed_intent.intent in {
+            "open_app",
+            "open_website",
+            "play_music",
+            "take_screenshot",
+            "start_study_workspace",
+        }:
+            return self._format_automation_response(action_result)
 
         if parsed_intent.intent == "motivational_response":
             return self._ollama_or_fallback(
                 prompt_name="motivational_response",
                 fallback="Keep the next step small and visible. One focused action is enough to restart momentum.",
                 user_message=user_message,
+                memory_context=memory_context,
             )
 
         return self._ollama_or_fallback(
@@ -60,6 +72,7 @@ class AIResponseHandler:
             ),
             user_message=user_message,
             history=history_text,
+            memory_context=memory_context,
         )
 
     def _format_task_list(self, tasks: object) -> str:
@@ -72,7 +85,11 @@ class AIResponseHandler:
                 lines.append(f"{index}. {task.title} ({task.priority})")
         return "\n".join(lines)
 
-    def _format_task_summary(self, action_result: RoutedActionResult) -> str:
+    def _format_task_summary(
+        self,
+        action_result: RoutedActionResult,
+        memory_context: str = "",
+    ) -> str:
         statistics = action_result.data.get("statistics")
         summary = action_result.data.get("summary")
         if not isinstance(statistics, TaskStatistics) or not isinstance(
@@ -87,6 +104,7 @@ class AIResponseHandler:
                 f"{summary.summary_text} Total: {statistics.total}. "
                 f"Open: {statistics.open_count}. Completed: {statistics.completed_count}."
             ),
+            memory_context=memory_context,
         )
 
         try:
@@ -110,3 +128,14 @@ class AIResponseHandler:
         except OllamaGenerationError:
             logger.info("Using fallback response for prompt %s", prompt_name)
             return fallback
+
+    def _format_automation_response(self, action_result: RoutedActionResult) -> str:
+        result = action_result.data.get("automation_result")
+        if not isinstance(result, AutomationResult):
+            return action_result.message
+
+        if result.confirmation_required:
+            return f"I need your confirmation before I do that. {result.message}"
+        if result.success:
+            return result.message
+        return f"I could not complete that automation action. {result.message}"

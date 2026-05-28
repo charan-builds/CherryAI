@@ -12,10 +12,12 @@ from dataclasses import dataclass
 
 from config.settings import AppSettings
 from backend.action_router.service import ActionRouter
+from backend.automation_engine.service import AutomationEngine
 from backend.ai_response_handler.schemas import AIWorkflowResult
 from backend.ai_response_handler.service import AIResponseHandler
 from backend.chat_session_manager.service import ChatSessionManager
 from backend.intent_parser.service import IntentParser
+from backend.memory_engine.service import MemoryEngine
 from backend.ollama_service.service import OllamaGenerationError, OllamaService
 from backend.prompt_manager.service import PromptManager
 from backend.task_engine.service import TaskEngine
@@ -29,6 +31,8 @@ class AIEngine:
 
     settings: AppSettings
     task_engine: TaskEngine | None = None
+    automation_engine: AutomationEngine | None = None
+    memory_engine: MemoryEngine | None = None
     ollama_service: OllamaService | None = None
     prompt_manager: PromptManager | None = None
     intent_parser: IntentParser | None = None
@@ -42,6 +46,10 @@ class AIEngine:
 
         if self.task_engine is None:
             self.task_engine = TaskEngine(settings=self.settings)
+        if self.automation_engine is None:
+            self.automation_engine = AutomationEngine(settings=self.settings)
+        if self.memory_engine is None:
+            self.memory_engine = MemoryEngine(settings=self.settings)
 
         self.intent_parser = self.intent_parser or IntentParser(
             ollama_service=self.ollama_service,
@@ -49,6 +57,7 @@ class AIEngine:
         )
         self.action_router = self.action_router or ActionRouter(
             task_engine=self.task_engine,
+            automation_engine=self.automation_engine,
         )
         self.response_handler = self.response_handler or AIResponseHandler(
             ollama_service=self.ollama_service,
@@ -85,6 +94,11 @@ class AIEngine:
 
         try:
             history_text = self.chat_sessions.format_history(active_session_id)
+            self.memory_engine.update_conversation(active_session_id, user_message)
+            memory_context = self.memory_engine.build_prompt_context(
+                user_message=user_message,
+                session_id=active_session_id,
+            )
             parsed_intent = self.intent_parser.parse(user_message)
             action_result = self.action_router.route(parsed_intent)
             response_text = self.response_handler.build_response(
@@ -92,6 +106,7 @@ class AIEngine:
                 parsed_intent=parsed_intent,
                 action_result=action_result,
                 history_text=history_text,
+                memory_context=memory_context,
             )
 
             self.chat_sessions.record_interaction(

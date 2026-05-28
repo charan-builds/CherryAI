@@ -29,7 +29,14 @@ Cherry AI starts as a local-first Windows desktop assistant and should grow into
 - `ai_response_handler`: natural-language response formatting
 - `chat_session_manager`: persisted chat session interaction history
 - `planner_engine`: goal decomposition and plan creation
-- `automation_engine`: desktop control through PyAutoGUI
+- `automation_engine`: safe structured desktop automation tools
+- `automation_engine/automation_manager`: permission -> execute -> history pipeline
+- `automation_engine/tool_registry`: structured automation tool definitions
+- `automation_engine/permission_manager`: safe, medium, and high-risk policy
+- `automation_engine/app_launcher`: Windows app launching
+- `automation_engine/browser_automation`: websites, YouTube, playlists, study resources
+- `automation_engine/screenshot_service`: timestamped screenshots
+- `automation_engine/action_history_manager`: persisted action audit history
 - `observer_engine`: local state and context gathering
 - `analytics_engine`: local product and health events
 - `memory_engine`: memory storage and retrieval boundary
@@ -42,11 +49,13 @@ The task engine is now backed by SQLite through a repository layer. The service 
 
 The observer engine is split into active-window, idle, focus, study-session, event-bus, and state-manager modules. It persists activity logs, study sessions, and observer events while exposing a small polling API for the desktop UI.
 
+The automation engine exposes structured tools through a registry and routes all execution through permission checks and action history persistence. AI code requests actions through intents; it never launches apps or manipulates the desktop directly.
+
 The AI runtime follows an intent-routing pattern: the AI extracts intent, the action router calls backend services, and the response handler formats the final conversational reply. UI and database logic stay outside direct model control.
 
 ### Database
 
-`database/` owns SQLAlchemy setup. `init_db.py` creates the schema and seeds a metadata record. The task model lives in `database/task_models.py`, AI chat history lives in `database/ai_models.py`, and observer data lives in `database/observer_models.py`. Future durable entities should be added as ORM models and then migrated through Alembic when schema evolution begins.
+`database/` owns SQLAlchemy setup. `init_db.py` creates the schema and seeds a metadata record. The task model lives in `database/task_models.py`, AI chat history lives in `database/ai_models.py`, observer data lives in `database/observer_models.py`, and automation action history lives in `database/automation_models.py`. Future durable entities should be added as ORM models and then migrated through Alembic when schema evolution begins.
 
 ### Configuration
 

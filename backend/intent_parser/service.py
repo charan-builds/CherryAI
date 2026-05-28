@@ -19,6 +19,11 @@ SUPPORTED_INTENTS = {
     "list_tasks",
     "summarize_tasks",
     "motivational_response",
+    "open_app",
+    "open_website",
+    "play_music",
+    "take_screenshot",
+    "start_study_workspace",
     "general_chat",
 }
 
@@ -81,6 +86,10 @@ class IntentParser:
             title=title,
             description=str(payload.get("description", "")).strip(),
             priority=priority,
+            app_name=str(payload.get("app_name", "")).strip(),
+            url=str(payload.get("url", "")).strip(),
+            query=str(payload.get("query", "")).strip(),
+            topic=str(payload.get("topic", "")).strip(),
             raw=payload,
         )
 
@@ -104,6 +113,54 @@ class IntentParser:
         if any(word in normalized for word in ("motivate", "motivation", "encourage")):
             return ParsedIntent(
                 intent="motivational_response",
+                raw={"source": "fallback"},
+            )
+
+        if "screenshot" in normalized:
+            return ParsedIntent(intent="take_screenshot", raw={"source": "fallback"})
+
+        if "study workspace" in normalized or "study setup" in normalized:
+            return ParsedIntent(
+                intent="start_study_workspace",
+                topic=self._extract_after_keywords(
+                    user_message,
+                    ("study workspace", "study setup"),
+                ),
+                raw={"source": "fallback"},
+            )
+
+        if normalized.startswith(("open app ", "launch app ")):
+            return ParsedIntent(
+                intent="open_app",
+                app_name=self._extract_after_keywords(
+                    user_message,
+                    ("open app", "launch app"),
+                ),
+                raw={"source": "fallback"},
+            )
+
+        if normalized.startswith(("open ", "launch ")):
+            target = self._extract_after_keywords(user_message, ("open", "launch"))
+            if "." in target or "http" in target.lower() or "youtube" in target.lower():
+                return ParsedIntent(
+                    intent="open_website",
+                    url=target,
+                    raw={"source": "fallback"},
+                )
+            return ParsedIntent(
+                intent="open_app",
+                app_name=target,
+                raw={"source": "fallback"},
+            )
+
+        if "play music" in normalized or "focus music" in normalized:
+            return ParsedIntent(
+                intent="play_music",
+                query=self._extract_after_keywords(
+                    user_message,
+                    ("play music", "play", "focus music"),
+                )
+                or "focus music",
                 raw={"source": "fallback"},
             )
 
@@ -142,3 +199,11 @@ class IntentParser:
         if "low priority" in normalized:
             return "low"
         return TASK_PRIORITY_NORMAL
+
+    def _extract_after_keywords(self, user_message: str, keywords: tuple[str, ...]) -> str:
+        for keyword in keywords:
+            pattern = rf"^\s*{re.escape(keyword)}\s*[:\-]?\s*"
+            cleaned = re.sub(pattern, "", user_message, flags=re.IGNORECASE).strip()
+            if cleaned != user_message.strip():
+                return cleaned
+        return ""

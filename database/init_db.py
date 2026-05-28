@@ -6,9 +6,24 @@ import logging
 
 from config.settings import AppSettings
 from database.ai_models import AIInteraction  # noqa: F401
+from database.automation_models import (  # noqa: F401
+    AutomationActionLog,
+    PermissionDecisionLog,
+    ToolExecutionLog,
+)
 from database.base import Base
+from database.memory_models import (  # noqa: F401
+    ConsolidatedMemoryPattern,
+    SemanticMemory,
+    WorkingMemoryState,
+)
 from database.models import AppMetadata
 from database.observer_models import ActivityLog, ObserverEventLog, StudySession  # noqa: F401
+from database.proactive_models import (  # noqa: F401
+    BehavioralPattern,
+    ProductivitySummary,
+    RecommendationLog,
+)
 from database.session import create_database_engine, create_session_factory
 from database.task_models import Task  # noqa: F401 - imported so metadata is registered
 

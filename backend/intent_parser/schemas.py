@@ -13,4 +13,8 @@ class ParsedIntent:
     title: str = ""
     description: str = ""
     priority: str = "normal"
+    app_name: str = ""
+    url: str = ""
+    query: str = ""
+    topic: str = ""
     raw: dict[str, object] = field(default_factory=dict)

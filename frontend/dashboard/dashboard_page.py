@@ -5,9 +5,21 @@ from __future__ import annotations
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
+from backend.daily_summary_engine.schemas import DailyProductivitySummary
+from backend.memory_consolidation_engine.schemas import ConsolidatedPatternRecord
 from backend.observer_engine.schemas import ObserverStatus
+from backend.productivity_analyzer.schemas import ProductivityAnalysis
+from backend.recommendation_engine.schemas import Recommendation
+from backend.semantic_memory_manager.schemas import SemanticMemoryRecord
+from backend.working_memory_manager.schemas import WorkingMemoryRecord
 from frontend.widgets.chat_display import ChatDisplayArea
 from frontend.widgets.command_input import CommandInputArea
+from frontend.widgets.proactive_intelligence import (
+    DailySummaryPanel,
+    MemoryInsightsPanel,
+    ProductivityCardsWidget,
+    RecommendationListWidget,
+)
 
 
 class DashboardPage(QFrame):
@@ -26,9 +38,17 @@ class DashboardPage(QFrame):
         self.chat_display = ChatDisplayArea()
         self.command_input = CommandInputArea()
         self.command_input.submitted.connect(self.command_submitted.emit)
+        self.productivity_cards = ProductivityCardsWidget()
+        self.daily_summary = DailySummaryPanel()
+        self.recommendations = RecommendationListWidget()
+        self.memory_insights = MemoryInsightsPanel()
         self.observer_summary = QLabel("Activity: waiting for observer")
         self.observer_summary.setObjectName("DashboardObserverSummary")
 
+        layout.addWidget(self.productivity_cards)
+        layout.addWidget(self.daily_summary)
+        layout.addWidget(self.recommendations)
+        layout.addWidget(self.memory_insights)
         layout.addWidget(self.observer_summary)
         layout.addWidget(self.chat_display, stretch=1)
         layout.addWidget(self.command_input)
@@ -63,4 +83,23 @@ class DashboardPage(QFrame):
         self.observer_summary.setText(
             f"Activity: {status.active_app} | {state} | "
             f"Focus {int(status.focus_seconds)}s"
+        )
+
+    def update_proactive_intelligence(
+        self,
+        analysis: ProductivityAnalysis,
+        summary: DailyProductivitySummary,
+        recommendations: list[Recommendation],
+        semantic_memories: list[SemanticMemoryRecord] | None = None,
+        consolidated_patterns: list[ConsolidatedPatternRecord] | None = None,
+        working_memory: list[WorkingMemoryRecord] | None = None,
+    ) -> None:
+        """Update proactive productivity widgets."""
+        self.productivity_cards.update_analysis(analysis)
+        self.daily_summary.update_summary(summary)
+        self.recommendations.update_recommendations(recommendations)
+        self.memory_insights.update_memory(
+            semantic_memories or [],
+            consolidated_patterns or [],
+            working_memory or [],
         )

@@ -5,5 +5,8 @@ Respond conversationally and helpfully. Keep the answer practical, concise, and 
 Recent conversation:
 {history}
 
+Contextual memory:
+{memory_context}
+
 User message:
 {user_message}

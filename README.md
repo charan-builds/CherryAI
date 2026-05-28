@@ -82,6 +82,9 @@ Important defaults:
 - Ollama model: `llama3.1`
 - Ollama timeout: `30` seconds
 - Ollama retries: `1`
+- Observer polling: `CHERRY_OBSERVER_POLL_INTERVAL_SECONDS=2`
+- Automation enabled: `CHERRY_AUTOMATION_ENABLED=true`
+- Screenshot directory: `.cherry_data/screenshots`
 
 ## Development Commands
 
@@ -106,3 +109,5 @@ The Tasks section is a functional SQLite-backed productivity system with task cr
 The Dashboard chat now uses the local AI runtime: Ollama-powered intent extraction with fallback parsing, task routing, natural responses, persistent interaction history, and non-blocking PyQt worker execution.
 
 Study Mode now uses the Observer Engine for active app tracking, idle/focus metrics, distraction detection, study session start/stop, and persisted behavioral events.
+
+The Automation Engine adds safe structured tools for opening apps, websites, music, study workspaces, and screenshots. All actions pass through permission checks and are persisted in action history.

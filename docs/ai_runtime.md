@@ -34,6 +34,11 @@ The AI never manipulates UI widgets or database tables directly. It extracts int
 - `summarize_tasks`
 - `motivational_response`
 - `general_chat`
+- `open_app`
+- `open_website`
+- `play_music`
+- `take_screenshot`
+- `start_study_workspace`
 
 ## Persistence
 

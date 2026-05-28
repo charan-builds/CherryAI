@@ -8,6 +8,7 @@ frontend/widgets and feature pages live in frontend/dashboard.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 
 from PyQt6.QtCore import QTimer
@@ -25,6 +26,10 @@ from config.settings import AppSettings
 from backend.ai_response_handler.schemas import AIWorkflowResult
 from frontend.dashboard.chat_worker import ChatWorker
 from frontend.dashboard.dashboard_page import DashboardPage
+from frontend.dashboard.proactive_worker import (
+    ProactiveIntelligenceResult,
+    ProactiveIntelligenceWorker,
+)
 from frontend.notifications.notification_center import NotificationCenter
 from frontend.study.study_page import StudyModePage
 from frontend.tasks.tasks_page import TasksPage
@@ -96,6 +101,8 @@ class MainWindow(QMainWindow):
         self.current_section = "dashboard"
         self.chat_session_id = services.ai.start_session()
         self.chat_workers: list[ChatWorker] = []
+        self.proactive_workers: list[ProactiveIntelligenceWorker] = []
+        self._last_proactive_refresh = 0.0
 
         self.section_lookup = {section.key: section for section in SECTIONS}
         self.pages: dict[str, QWidget] = {}
@@ -113,7 +120,10 @@ class MainWindow(QMainWindow):
 
         self.dashboard_page = DashboardPage()
         self.tasks_page = TasksPage(task_engine=services.tasks)
-        self.study_page = StudyModePage(observer_engine=services.observer)
+        self.study_page = StudyModePage(
+            observer_engine=services.observer,
+            automation_engine=services.automation,
+        )
         self.observer_timer = QTimer(self)
         self.observer_timer.setInterval(
             max(int(settings.observer_poll_interval_seconds * 1000), 250)
@@ -210,7 +220,7 @@ class MainWindow(QMainWindow):
     def _complete_startup(self) -> None:
         """Mark startup complete after the first event-loop tick."""
         self.top_bar.set_status("Ready", "ready")
-        self._poll_observer()
+        self._poll_observer(force_proactive=True)
         self.dashboard_page.add_startup_message()
         self.notifications.notify("ready", "Cherry AI interface ready")
 
@@ -268,12 +278,76 @@ class MainWindow(QMainWindow):
             self.chat_workers.remove(worker)
         worker.deleteLater()
 
-    def _poll_observer(self) -> None:
+    def _poll_observer(self, force_proactive: bool = False) -> None:
         """Poll observer state and update lightweight UI indicators."""
         status = self.services.observer.sample_once()
+        self.services.memory.update_observer_status(status)
         self.study_page.update_status(status)
         self.dashboard_page.update_observer_summary(status)
         self.footer.set_context(
             f"{self.settings.app_env} | {self.settings.ollama_model} | "
             f"App: {status.active_app}"
         )
+        self._refresh_proactive_intelligence(status, force=force_proactive)
+
+    def _refresh_proactive_intelligence(self, status, force: bool = False) -> None:
+        """Refresh proactive metrics on a slower, non-AI UI cadence."""
+        if not self.settings.proactive_enabled:
+            return
+
+        now = time.monotonic()
+        refresh_interval = max(self.settings.proactive_refresh_interval_seconds, 1.0)
+        if not force and now - self._last_proactive_refresh < refresh_interval:
+            return
+
+        self._last_proactive_refresh = now
+        if self.proactive_workers:
+            return
+
+        worker = ProactiveIntelligenceWorker(
+            services=self.services,
+            status=status,
+        )
+        worker.completed.connect(self._handle_proactive_result)
+        worker.failed.connect(self._handle_proactive_error)
+        worker.finished.connect(lambda: self._cleanup_proactive_worker(worker))
+        self.proactive_workers.append(worker)
+        worker.start()
+
+    def _handle_proactive_result(self, result: ProactiveIntelligenceResult) -> None:
+        """Render a completed proactive intelligence refresh."""
+        self.dashboard_page.update_proactive_intelligence(
+            result.analysis,
+            result.summary,
+            result.recommendations,
+            result.semantic_memories,
+            result.consolidated_patterns,
+            result.working_memory,
+        )
+        self.study_page.update_proactive_intelligence(
+            result.analysis,
+            result.summary,
+            result.recommendations,
+            result.semantic_memories,
+            result.consolidated_patterns,
+            result.working_memory,
+        )
+        self._emit_adaptive_notification(result.notification_candidates)
+
+    def _handle_proactive_error(self, message: str) -> None:
+        """Log proactive refresh errors without interrupting the user."""
+        logger.warning("Proactive intelligence refresh failed: %s", message)
+
+    def _cleanup_proactive_worker(self, worker: ProactiveIntelligenceWorker) -> None:
+        """Drop completed proactive worker references."""
+        if worker in self.proactive_workers:
+            self.proactive_workers.remove(worker)
+        worker.deleteLater()
+
+    def _emit_adaptive_notification(self, recommendations) -> None:
+        """Emit at most one decision-approved proactive notification."""
+        for recommendation in recommendations:
+            decision = self.services.notification_decisions.evaluate(recommendation)
+            if decision.should_notify:
+                self.notifications.notify(decision.priority, recommendation.message)
+                return

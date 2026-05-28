@@ -23,4 +23,8 @@ def make_test_settings(tmp_path) -> AppSettings:
         observer_poll_interval_seconds=0.1,
         idle_threshold_seconds=60.0,
         distraction_keywords=("YouTube", "Reddit"),
+        automation_enabled=True,
+        automation_timeout_seconds=1.0,
+        screenshot_dir=tmp_path / "screenshots",
+        custom_app_mappings={},
     )

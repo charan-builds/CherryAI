@@ -63,3 +63,26 @@ def test_intent_parser_fallback_for_general_chat(tmp_path):
     parsed = parser.parse("How are you?")
 
     assert parsed.intent == "general_chat"
+
+
+def test_intent_parser_fallback_for_open_app(tmp_path):
+    parser = IntentParser(
+        ollama_service=FakeIntentOllama("not json"),
+        prompt_manager=PromptManager(),
+    )
+
+    parsed = parser.parse("Open VS Code")
+
+    assert parsed.intent == "open_app"
+    assert parsed.app_name == "VS Code"
+
+
+def test_intent_parser_fallback_for_screenshot(tmp_path):
+    parser = IntentParser(
+        ollama_service=FakeIntentOllama("not json"),
+        prompt_manager=PromptManager(),
+    )
+
+    parsed = parser.parse("take a screenshot")
+
+    assert parsed.intent == "take_screenshot"

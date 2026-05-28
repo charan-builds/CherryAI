@@ -50,6 +50,8 @@ It does not define low-level widget styling or message rendering.
 
 `frontend/study/study_page.py` integrates with the observer engine. It supports starting and stopping study sessions, displays current active app/window, and renders live focus, idle, app-switch, and distraction metrics. The main window updates it through a lightweight `QTimer`.
 
+Study Mode also exposes automation quick actions. `frontend/study/automation_worker.py` runs tool execution in a background `QThread`, and the page prompts for confirmation when the automation engine returns a medium-risk decision.
+
 ## Theme System
 
 `frontend/styles/theme.py` loads QSS files by theme name. The default `dark_theme.qss` gives the interface a modern dark appearance while keeping style concerns out of widget classes.

@@ -5,10 +5,19 @@ Supported intents:
 - list_tasks
 - summarize_tasks
 - motivational_response
+- open_app
+- open_website
+- play_music
+- take_screenshot
+- start_study_workspace
 - general_chat
 
 For create_task, include title, description, and priority when available.
 Priority must be one of: low, normal, high.
+For open_app, include app_name.
+For open_website, include url.
+For play_music, include query or playlist_url.
+For start_study_workspace, include topic and optional app_name.
 
 Return this shape:
 {{"intent":"create_task","title":"study numpy","description":"","priority":"normal"}}

@@ -109,7 +109,10 @@ QFrame#TaskSummary,
 QFrame#TaskListPanel,
 QFrame#TaskFilterBar,
 QFrame#StudyPanel,
-QFrame#StudyMetricGrid {
+QFrame#StudyMetricGrid,
+QFrame#DailySummaryPanel,
+QFrame#RecommendationPanel,
+QFrame#MemoryInsightsPanel {
     background: #17191f;
     border: 1px solid #2a2d35;
     border-radius: 8px;
@@ -350,6 +353,39 @@ QLabel#StudyMetricValue {
     font-weight: 700;
 }
 
+QFrame#ProductivityCards {
+    background: transparent;
+    border: none;
+}
+
+QFrame#ProductivityMetricCard {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QLabel#ProductivityMetricValue {
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+QLabel#RecommendationItem {
+    background: #20242d;
+    border: 1px solid #303642;
+    border-radius: 8px;
+    color: #d8d2cc;
+    padding: 9px 11px;
+}
+
+QLabel#MemoryInsightItem {
+    background: #18232a;
+    border: 1px solid #315569;
+    border-radius: 8px;
+    color: #d8d2cc;
+    padding: 9px 11px;
+}
+
 QLabel#StudyLiveValue {
     background: #111319;
     border: 1px solid #343946;
@@ -363,6 +399,14 @@ QLabel#StudySessionStatus {
     border: 1px solid #303642;
     border-radius: 8px;
     color: #d8d2cc;
+    padding: 10px 12px;
+}
+
+QLabel#StudyAutomationHistory {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #a9afbd;
     padding: 10px 12px;
 }
 

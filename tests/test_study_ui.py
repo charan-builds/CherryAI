@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QApplication
 
 from backend.observer_engine.schemas import WindowSnapshot
 from backend.observer_engine.service import ObserverEngine
+from backend.automation_engine.service import AutomationEngine
 from database.init_db import initialize_database
 from database.models import utc_now
 from frontend.study.study_page import StudyModePage
@@ -37,7 +38,10 @@ def test_study_page_start_stop_smoke(tmp_path):
         ),
         idle_provider=FakeIdleProvider([0, 0]),
     )
-    page = StudyModePage(observer_engine=engine)
+    page = StudyModePage(
+        observer_engine=engine,
+        automation_engine=AutomationEngine(settings=settings),
+    )
 
     page.topic_input.setText("NumPy")
     page.start_button.click()
