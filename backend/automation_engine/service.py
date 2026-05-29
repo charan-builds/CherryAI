@@ -15,6 +15,8 @@ from backend.automation_engine.permission_manager.service import PermissionManag
 from backend.automation_engine.screenshot_service.service import ScreenshotService
 from backend.automation_engine.schemas import AutomationActionRecord, AutomationResult
 from backend.automation_engine.tool_registry.service import ToolRegistry
+from backend.centralized_event_bus.service import CentralizedEventBus
+from backend.execution_sandbox.service import ExecutionSandbox
 
 
 @dataclass
@@ -29,6 +31,8 @@ class AutomationEngine:
     permission_manager: PermissionManager | None = None
     tool_registry: ToolRegistry | None = None
     manager: AutomationManager | None = None
+    event_bus: CentralizedEventBus | None = None
+    execution_sandbox: ExecutionSandbox | None = None
 
     def __post_init__(self) -> None:
         self.app_launcher = self.app_launcher or AppLauncher(self.settings)
@@ -48,6 +52,8 @@ class AutomationEngine:
             tool_registry=self.tool_registry,
             permission_manager=self.permission_manager,
             action_history=self.action_history,
+            event_bus=self.event_bus,
+            execution_sandbox=self.execution_sandbox,
         )
 
     def configure_pyautogui(self) -> None:

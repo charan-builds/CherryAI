@@ -11,6 +11,7 @@ from backend.intent_parser.schemas import ParsedIntent
 from backend.ollama_service.service import OllamaGenerationError, OllamaService
 from backend.prompt_manager.service import PromptManager
 from backend.task_engine.schemas import DailyTaskSummary, TaskRecord, TaskStatistics
+from backend.workflow_state_manager.schemas import WorkflowExecutionResult, WorkflowPlan
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ class AIResponseHandler:
             "start_study_workspace",
         }:
             return self._format_automation_response(action_result)
+
+        if parsed_intent.intent == "start_workflow":
+            return self._format_workflow_response(action_result)
 
         if parsed_intent.intent == "motivational_response":
             return self._ollama_or_fallback(
@@ -139,3 +143,20 @@ class AIResponseHandler:
         if result.success:
             return result.message
         return f"I could not complete that automation action. {result.message}"
+
+    def _format_workflow_response(self, action_result: RoutedActionResult) -> str:
+        plan = action_result.data.get("workflow_plan")
+        result = action_result.data.get("workflow_result")
+        if not isinstance(plan, WorkflowPlan) or not isinstance(
+            result,
+            WorkflowExecutionResult,
+        ):
+            return action_result.message
+
+        status_line = "completed" if result.success else f"stopped as {result.status}"
+        lines = [f"Workflow {status_line}: {plan.name}."]
+        for step_result in result.step_results:
+            lines.append(f"- {step_result.step_key}: {step_result.status}")
+        if result.reflection_summary:
+            lines.append(result.reflection_summary)
+        return "\n".join(lines)

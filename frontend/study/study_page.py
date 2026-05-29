@@ -36,6 +36,7 @@ class StudyModePage(QFrame):
     """Study session controls and live behavioral status."""
 
     status_message = pyqtSignal(str)
+    workflow_requested = pyqtSignal(str)
 
     def __init__(
         self,
@@ -81,6 +82,10 @@ class StudyModePage(QFrame):
         self.open_workspace_button = QPushButton("Open Workspace")
         self.open_workspace_button.setObjectName("TaskPrimaryButton")
         self.open_workspace_button.setCursor(Qt.CursorShape.PointingHandCursor)
+
+        self.study_workflow_button = QPushButton("Study Workflow")
+        self.study_workflow_button.setObjectName("TaskPrimaryButton")
+        self.study_workflow_button.setCursor(Qt.CursorShape.PointingHandCursor)
 
         self.music_button = QPushButton("Focus Music")
         self.music_button.setObjectName("TaskSecondaryButton")
@@ -145,6 +150,7 @@ class StudyModePage(QFrame):
         controls_layout.addLayout(buttons_layout)
         controls_layout.addWidget(self.session_status_label)
         controls_layout.addSpacing(8)
+        controls_layout.addWidget(self.study_workflow_button)
         controls_layout.addWidget(self.open_workspace_button)
         controls_layout.addWidget(self.music_button)
         controls_layout.addWidget(self.screenshot_button)
@@ -192,6 +198,7 @@ class StudyModePage(QFrame):
         self.stop_button.clicked.connect(self._stop_session)
         self.topic_input.returnPressed.connect(self._start_session)
         self.open_workspace_button.clicked.connect(self._open_study_workspace)
+        self.study_workflow_button.clicked.connect(self._start_study_workflow)
         self.music_button.clicked.connect(self._play_focus_music)
         self.screenshot_button.clicked.connect(self._take_screenshot)
 
@@ -229,6 +236,10 @@ class StudyModePage(QFrame):
             "open_study_workspace",
             {"topic": topic, "app_name": "vscode"},
         )
+
+    def _start_study_workflow(self) -> None:
+        topic = self.topic_input.text().strip() or "Focused"
+        self.workflow_requested.emit(f"Prepare {topic} study session")
 
     def _play_focus_music(self) -> None:
         self._run_automation("play_music", {"query": "focus music"})

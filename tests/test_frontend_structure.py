@@ -10,6 +10,7 @@ def test_frontend_navigation_sections_are_defined():
         "Tasks",
         "Study Mode",
         "Memory",
+        "Knowledge",
         "Analytics",
         "Settings",
     ]

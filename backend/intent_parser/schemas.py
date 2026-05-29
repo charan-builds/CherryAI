@@ -17,4 +17,5 @@ class ParsedIntent:
     url: str = ""
     query: str = ""
     topic: str = ""
+    goal: str = ""
     raw: dict[str, object] = field(default_factory=dict)

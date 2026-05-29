@@ -6,6 +6,12 @@ import logging
 from dataclasses import dataclass
 
 from config.settings import AppSettings
+from backend.centralized_event_bus.schemas import (
+    EVENT_CATEGORY_MEMORY,
+    PRIORITY_LOW,
+    PlatformEvent,
+)
+from backend.centralized_event_bus.service import CentralizedEventBus
 from backend.context_injection_engine.service import ContextInjectionEngine
 from backend.context_retriever.service import ContextRetriever
 from backend.memory_classifier.service import MemoryClassifier
@@ -30,6 +36,7 @@ class MemoryEngine:
     context_retriever: ContextRetriever | None = None
     context_injection: ContextInjectionEngine | None = None
     consolidation_engine: MemoryConsolidationEngine | None = None
+    event_bus: CentralizedEventBus | None = None
 
     def __post_init__(self) -> None:
         self.classifier = self.classifier or MemoryClassifier()
@@ -57,6 +64,7 @@ class MemoryEngine:
     def remember(self, item: str) -> None:
         """Store a user-provided memory item."""
         self.semantic_memory.remember(item)
+        self._publish_event("memory_stored", {"content_length": len(item)})
 
     def recent(self, limit: int = 10) -> list[str]:
         """Return recent durable memory text for compatibility callers."""
@@ -82,6 +90,10 @@ class MemoryEngine:
         """Track active conversation context."""
         if self.settings.memory_enabled:
             self.working_memory.update_conversation(session_id, user_message)
+            self._publish_event(
+                "working_memory_updated",
+                {"session_id": session_id, "content_length": len(user_message)},
+            )
 
     def update_observer_status(self, status: ObserverStatus) -> None:
         """Track active study and focus context."""
@@ -96,3 +108,17 @@ class MemoryEngine:
         pruned = self.semantic_memory.prune()
         if pruned:
             logger.info("Pruned %s stale memory item(s)", pruned)
+        self._publish_event("memory_consolidated", {"pruned": pruned})
+
+    def _publish_event(self, event_type: str, payload: dict[str, object]) -> None:
+        if self.event_bus is None:
+            return
+        self.event_bus.publish(
+            PlatformEvent(
+                event_type=event_type,
+                source="memory_engine",
+                category=EVENT_CATEGORY_MEMORY,
+                priority=PRIORITY_LOW,
+                payload=payload,
+            )
+        )

@@ -16,6 +16,13 @@ from backend.automation_engine.schemas import (
     ToolExecutionResult,
 )
 from backend.automation_engine.tool_registry.service import ToolRegistry
+from backend.centralized_event_bus.schemas import (
+    EVENT_CATEGORY_AUTOMATION,
+    PRIORITY_NORMAL,
+    PlatformEvent,
+)
+from backend.centralized_event_bus.service import CentralizedEventBus
+from backend.execution_sandbox.service import ExecutionSandbox
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +35,8 @@ class AutomationManager:
     tool_registry: ToolRegistry
     permission_manager: PermissionManager
     action_history: ActionHistoryManager
+    event_bus: CentralizedEventBus | None = None
+    execution_sandbox: ExecutionSandbox | None = None
 
     def execute_tool(
         self,
@@ -55,6 +64,29 @@ class AutomationManager:
                 permission_status=PERMISSION_BLOCKED,
             )
 
+        sandbox_decision = None
+        if self.execution_sandbox is not None:
+            sandbox_decision = self.execution_sandbox.begin_execution(
+                subject="automation",
+                action_name=tool.name,
+                parameters=parameters,
+            )
+            if not sandbox_decision.allowed:
+                self._publish_event(
+                    "automation_blocked",
+                    tool.name,
+                    success=False,
+                    message=sandbox_decision.reason,
+                    parameters=parameters,
+                )
+                return AutomationResult(
+                    tool_name=tool.name,
+                    success=False,
+                    message=sandbox_decision.reason,
+                    error_message=sandbox_decision.reason,
+                    permission_status=PERMISSION_BLOCKED,
+                )
+
         decision = self.permission_manager.evaluate(
             tool=tool,
             parameters=parameters,
@@ -80,6 +112,8 @@ class AutomationManager:
                 error_message=decision.reason,
             )
             self.action_history.complete_action(action_id, result)
+            if self.execution_sandbox is not None:
+                self.execution_sandbox.end_execution("automation", tool.name)
             return AutomationResult(
                 tool_name=tool.name,
                 success=False,
@@ -90,12 +124,16 @@ class AutomationManager:
                 action_id=action_id,
             )
 
-        result = self.tool_registry.execute(tool.name, parameters)
-        self.action_history.record_tool_execution(action_id, tool.name, result)
-        self.action_history.complete_action(action_id, result)
-        logger.info("Automation tool %s completed: %s", tool.name, result.success)
+        try:
+            result = self.tool_registry.execute(tool.name, parameters)
+            self.action_history.record_tool_execution(action_id, tool.name, result)
+            self.action_history.complete_action(action_id, result)
+            logger.info("Automation tool %s completed: %s", tool.name, result.success)
+        finally:
+            if self.execution_sandbox is not None:
+                self.execution_sandbox.end_execution("automation", tool.name)
 
-        return AutomationResult(
+        automation_result = AutomationResult(
             tool_name=tool.name,
             success=result.success,
             message=result.message,
@@ -103,4 +141,41 @@ class AutomationManager:
             error_message=result.error_message,
             permission_status=decision.status,
             action_id=action_id,
+        )
+        self._publish_event(
+            "automation_completed",
+            tool.name,
+            success=automation_result.success,
+            message=automation_result.message,
+            parameters=parameters,
+            action_id=action_id,
+        )
+        return automation_result
+
+    def _publish_event(
+        self,
+        event_type: str,
+        tool_name: str,
+        success: bool,
+        message: str,
+        parameters: dict[str, object],
+        action_id: str = "",
+    ) -> None:
+        if self.event_bus is None:
+            return
+        self.event_bus.publish(
+            PlatformEvent(
+                event_type=event_type,
+                source="automation_engine",
+                category=EVENT_CATEGORY_AUTOMATION,
+                priority=PRIORITY_NORMAL,
+                correlation_id=action_id,
+                payload={
+                    "tool_name": tool_name,
+                    "success": success,
+                    "message": message,
+                    "parameters": parameters,
+                    "action_id": action_id,
+                },
+            )
         )

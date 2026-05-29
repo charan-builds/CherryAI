@@ -24,6 +24,7 @@ SUPPORTED_INTENTS = {
     "play_music",
     "take_screenshot",
     "start_study_workspace",
+    "start_workflow",
     "general_chat",
 }
 
@@ -90,6 +91,7 @@ class IntentParser:
             url=str(payload.get("url", "")).strip(),
             query=str(payload.get("query", "")).strip(),
             topic=str(payload.get("topic", "")).strip(),
+            goal=str(payload.get("goal", "")).strip(),
             raw=payload,
         )
 
@@ -126,6 +128,13 @@ class IntentParser:
                     user_message,
                     ("study workspace", "study setup"),
                 ),
+                raw={"source": "fallback"},
+            )
+
+        if self._looks_like_workflow_request(normalized):
+            return ParsedIntent(
+                intent="start_workflow",
+                goal=self._extract_workflow_goal(user_message),
                 raw={"source": "fallback"},
             )
 
@@ -199,6 +208,23 @@ class IntentParser:
         if "low priority" in normalized:
             return "low"
         return TASK_PRIORITY_NORMAL
+
+    def _looks_like_workflow_request(self, normalized: str) -> bool:
+        if "workflow" in normalized:
+            return True
+        return (
+            any(word in normalized for word in ("prepare", "setup", "set up", "start"))
+            and any(word in normalized for word in ("study session", "focus session"))
+        )
+
+    def _extract_workflow_goal(self, user_message: str) -> str:
+        cleaned = re.sub(
+            r"^\s*(start|run|create|prepare|setup|set up)\s+(a\s+)?(workflow\s+)?",
+            "",
+            user_message,
+            flags=re.IGNORECASE,
+        )
+        return cleaned.strip() or user_message.strip()
 
     def _extract_after_keywords(self, user_message: str, keywords: tuple[str, ...]) -> str:
         for keyword in keywords:

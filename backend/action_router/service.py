@@ -7,8 +7,10 @@ from dataclasses import dataclass
 
 from backend.action_router.schemas import RoutedActionResult
 from backend.automation_engine.service import AutomationEngine
+from backend.goal_planner_engine.service import GoalPlannerEngine
 from backend.intent_parser.schemas import ParsedIntent
 from backend.task_engine.service import TaskEngine
+from backend.workflow_execution_engine.service import WorkflowExecutionEngine
 
 logger = logging.getLogger(__name__)
 
@@ -19,10 +21,15 @@ class ActionRouter:
 
     task_engine: TaskEngine
     automation_engine: AutomationEngine | None = None
+    goal_planner: GoalPlannerEngine | None = None
+    workflow_execution_engine: WorkflowExecutionEngine | None = None
 
     def route(self, parsed_intent: ParsedIntent) -> RoutedActionResult:
         """Route an intent to the correct backend service."""
         try:
+            if parsed_intent.intent == "start_workflow":
+                return self._route_workflow(parsed_intent)
+
             if parsed_intent.intent == "create_task":
                 task = self.task_engine.create_task(
                     title=parsed_intent.title,
@@ -116,3 +123,21 @@ class ActionRouter:
                 "app_name": parsed_intent.app_name or "vscode",
             }
         return parsed_intent.intent, {}
+
+    def _route_workflow(self, parsed_intent: ParsedIntent) -> RoutedActionResult:
+        if self.goal_planner is None or self.workflow_execution_engine is None:
+            return RoutedActionResult(
+                intent=parsed_intent.intent,
+                success=False,
+                message="Workflow engine is not available.",
+            )
+
+        goal = parsed_intent.goal or parsed_intent.title or "Productivity workflow"
+        plan = self.goal_planner.create_plan(goal)
+        result = self.workflow_execution_engine.execute_plan(plan)
+        return RoutedActionResult(
+            intent=parsed_intent.intent,
+            success=result.success,
+            message=result.message,
+            data={"workflow_plan": plan, "workflow_result": result},
+        )

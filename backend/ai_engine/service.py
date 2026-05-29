@@ -8,6 +8,7 @@ execution to the action router and persistence to the chat session manager.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 
 from config.settings import AppSettings
@@ -15,9 +16,17 @@ from backend.action_router.service import ActionRouter
 from backend.automation_engine.service import AutomationEngine
 from backend.ai_response_handler.schemas import AIWorkflowResult
 from backend.ai_response_handler.service import AIResponseHandler
+from backend.centralized_event_bus.schemas import (
+    EVENT_CATEGORY_AI,
+    PRIORITY_NORMAL,
+    PlatformEvent,
+)
+from backend.centralized_event_bus.service import CentralizedEventBus
 from backend.chat_session_manager.service import ChatSessionManager
+from backend.error_recovery_engine.service import ErrorRecoveryEngine
 from backend.intent_parser.service import IntentParser
 from backend.memory_engine.service import MemoryEngine
+from backend.observability_engine.service import ObservabilityEngine
 from backend.ollama_service.service import OllamaGenerationError, OllamaService
 from backend.prompt_manager.service import PromptManager
 from backend.task_engine.service import TaskEngine
@@ -39,6 +48,9 @@ class AIEngine:
     action_router: ActionRouter | None = None
     response_handler: AIResponseHandler | None = None
     chat_sessions: ChatSessionManager | None = None
+    event_bus: CentralizedEventBus | None = None
+    observability: ObservabilityEngine | None = None
+    error_recovery: ErrorRecoveryEngine | None = None
 
     def __post_init__(self) -> None:
         self.prompt_manager = self.prompt_manager or PromptManager()
@@ -91,6 +103,12 @@ class AIEngine:
     ) -> AIWorkflowResult:
         """Process one user message through the full AI runtime workflow."""
         active_session_id = session_id or self.start_session()
+        started = time.perf_counter()
+        self._publish_event(
+            "ai_request_started",
+            active_session_id,
+            {"session_id": active_session_id},
+        )
 
         try:
             history_text = self.chat_sessions.format_history(active_session_id)
@@ -117,6 +135,23 @@ class AIEngine:
             )
 
             logger.info("AI workflow completed with intent: %s", parsed_intent.intent)
+            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            self._publish_event(
+                "ai_request_completed",
+                active_session_id,
+                {
+                    "session_id": active_session_id,
+                    "intent": parsed_intent.intent,
+                    "success": action_result.success,
+                    "duration_ms": duration_ms,
+                },
+            )
+            if self.observability is not None:
+                self.observability.record_timing(
+                    "ai_handle_message",
+                    duration_ms,
+                    EVENT_CATEGORY_AI,
+                )
             return AIWorkflowResult(
                 session_id=active_session_id,
                 user_message=user_message,
@@ -126,6 +161,8 @@ class AIEngine:
             )
         except Exception as exc:
             logger.exception("AI workflow failed")
+            if self.error_recovery is not None:
+                self.error_recovery.recover(exc, context="ai_handle_message")
             fallback_response = (
                 "I hit a local runtime problem while handling that. "
                 "Your desktop app is still running, and you can try again."
@@ -148,3 +185,22 @@ class AIEngine:
                 detected_intent="general_chat",
                 success=False,
             )
+
+    def _publish_event(
+        self,
+        event_type: str,
+        session_id: str,
+        payload: dict[str, object],
+    ) -> None:
+        if self.event_bus is None:
+            return
+        self.event_bus.publish(
+            PlatformEvent(
+                event_type=event_type,
+                source="ai_engine",
+                category=EVENT_CATEGORY_AI,
+                priority=PRIORITY_NORMAL,
+                correlation_id=session_id,
+                payload=payload,
+            )
+        )

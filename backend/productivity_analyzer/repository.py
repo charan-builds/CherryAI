@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from typing import Iterator
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, and_, or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from config.settings import AppSettings
@@ -57,7 +57,13 @@ class ProductivityDataRepository:
 
     def study_totals(self, start: datetime, end: datetime) -> dict[str, float | int]:
         """Return aggregate study duration, focus, idle, and interruptions."""
-        statement = self._between(select(StudySession), StudySession.started_at, start, end)
+        statement = select(StudySession).where(
+            or_(
+                and_(StudySession.started_at >= start, StudySession.started_at < end),
+                and_(StudySession.ended_at >= start, StudySession.ended_at < end),
+                and_(StudySession.started_at < start, StudySession.ended_at >= end),
+            )
+        )
         with self._session_scope() as session:
             sessions = session.scalars(statement).all()
 

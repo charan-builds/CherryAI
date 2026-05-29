@@ -30,9 +30,12 @@ from frontend.dashboard.proactive_worker import (
     ProactiveIntelligenceResult,
     ProactiveIntelligenceWorker,
 )
+from frontend.diagnostics.diagnostics_page import DiagnosticsPage
+from frontend.knowledge.knowledge_center_page import KnowledgeCenterPage
 from frontend.notifications.notification_center import NotificationCenter
 from frontend.study.study_page import StudyModePage
 from frontend.tasks.tasks_page import TasksPage
+from frontend.workflows.workflow_worker import WorkflowExecutionWorker
 from frontend.widgets.page_placeholder import PlaceholderPage
 from frontend.widgets.sidebar import SidebarNavigation
 from frontend.widgets.status_footer import StatusFooter
@@ -77,6 +80,12 @@ SECTIONS: tuple[SectionDefinition, ...] = (
         placeholder="Saved memories, preferences, and retrieval controls will live here.",
     ),
     SectionDefinition(
+        key="knowledge",
+        title="Knowledge",
+        subtitle="Documents, code, screenshots, summaries, and notes",
+        placeholder="Knowledge Center",
+    ),
+    SectionDefinition(
         key="analytics",
         title="Analytics",
         subtitle="Local usage and health insights",
@@ -102,7 +111,9 @@ class MainWindow(QMainWindow):
         self.chat_session_id = services.ai.start_session()
         self.chat_workers: list[ChatWorker] = []
         self.proactive_workers: list[ProactiveIntelligenceWorker] = []
+        self.workflow_workers: list[WorkflowExecutionWorker] = []
         self._last_proactive_refresh = 0.0
+        self._last_companion_refresh = 0.0
 
         self.section_lookup = {section.key: section for section in SECTIONS}
         self.pages: dict[str, QWidget] = {}
@@ -120,6 +131,8 @@ class MainWindow(QMainWindow):
 
         self.dashboard_page = DashboardPage()
         self.tasks_page = TasksPage(task_engine=services.tasks)
+        self.diagnostics_page = DiagnosticsPage(services=services)
+        self.knowledge_page = KnowledgeCenterPage(services=services)
         self.study_page = StudyModePage(
             observer_engine=services.observer,
             automation_engine=services.automation,
@@ -127,6 +140,12 @@ class MainWindow(QMainWindow):
         self.observer_timer = QTimer(self)
         self.observer_timer.setInterval(
             max(int(settings.observer_poll_interval_seconds * 1000), 250)
+        )
+        self.workflow_timer = QTimer(self)
+        self.workflow_timer.setInterval(1000)
+        self.platform_timer = QTimer(self)
+        self.platform_timer.setInterval(
+            max(int(settings.performance_monitor_interval_seconds * 1000), 1000)
         )
 
         self._build_pages()
@@ -137,6 +156,8 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(300, self._complete_startup)
         if settings.observer_enabled:
             self.observer_timer.start()
+        self.workflow_timer.start()
+        self.platform_timer.start()
         logger.info("Main window initialized")
 
     def _build_pages(self) -> None:
@@ -148,6 +169,10 @@ class MainWindow(QMainWindow):
                 page = self.tasks_page
             elif section.key == "study":
                 page = self.study_page
+            elif section.key == "knowledge":
+                page = self.knowledge_page
+            elif section.key == "analytics":
+                page = self.diagnostics_page
             else:
                 page = PlaceholderPage(section.title, section.placeholder)
 
@@ -185,7 +210,15 @@ class MainWindow(QMainWindow):
         self.dashboard_page.command_submitted.connect(self._handle_prompt)
         self.tasks_page.status_message.connect(self.footer.set_message)
         self.study_page.status_message.connect(self.footer.set_message)
+        self.study_page.workflow_requested.connect(self._start_workflow)
+        self.dashboard_page.workflow_start_requested.connect(self._start_workflow)
+        self.dashboard_page.workflow_pause_requested.connect(self._pause_workflow)
+        self.dashboard_page.workflow_resume_requested.connect(self._resume_workflow)
+        self.dashboard_page.workflow_cancel_requested.connect(self._cancel_workflow)
+        self.dashboard_page.workspace_requested.connect(self._launch_workspace)
         self.observer_timer.timeout.connect(self._poll_observer)
+        self.workflow_timer.timeout.connect(self._refresh_workflow_panel)
+        self.platform_timer.timeout.connect(self._refresh_platform_runtime)
         self.notifications.notification_emitted.connect(self._handle_notification)
 
     def _switch_section(self, key: str) -> None:
@@ -206,12 +239,19 @@ class MainWindow(QMainWindow):
 
         if key == "dashboard":
             self.footer.set_message("Assistant console ready")
+            self._refresh_companion_experience()
         elif key == "tasks":
             self.tasks_page.refresh_tasks()
             self.footer.set_message("Task workspace ready")
         elif key == "study":
             self.study_page.update_status(self.services.observer.get_status())
             self.footer.set_message("Study Mode ready")
+        elif key == "analytics":
+            self.diagnostics_page.refresh()
+            self.footer.set_message("Diagnostics ready")
+        elif key == "knowledge":
+            self.knowledge_page.refresh()
+            self.footer.set_message("Knowledge Center ready")
         else:
             self.footer.set_message(f"{section.title} shell ready")
 
@@ -223,6 +263,9 @@ class MainWindow(QMainWindow):
         self._poll_observer(force_proactive=True)
         self.dashboard_page.add_startup_message()
         self.notifications.notify("ready", "Cherry AI interface ready")
+        self._refresh_workflow_panel()
+        self._refresh_platform_runtime()
+        self._refresh_companion_experience(force=True)
 
     def _handle_notification(self, level: str, message: str) -> None:
         """Handle local UI notifications."""
@@ -261,6 +304,8 @@ class MainWindow(QMainWindow):
 
         if result.detected_intent in {"create_task", "list_tasks", "summarize_tasks"}:
             self.tasks_page.refresh_tasks()
+        if result.detected_intent == "start_workflow":
+            self._refresh_workflow_panel()
 
     def _handle_ai_error(self, message: str) -> None:
         """Render a worker-level error."""
@@ -277,6 +322,163 @@ class MainWindow(QMainWindow):
         if worker in self.chat_workers:
             self.chat_workers.remove(worker)
         worker.deleteLater()
+
+    def _start_workflow(self, goal: str) -> None:
+        """Plan and run an agentic workflow in the background."""
+        worker = WorkflowExecutionWorker(
+            goal_planner=self.services.goal_planner,
+            workflow_execution=self.services.workflow_execution,
+            goal=goal,
+        )
+        worker.started_workflow.connect(self._handle_workflow_started)
+        worker.completed.connect(self._handle_workflow_completed)
+        worker.failed.connect(self._handle_workflow_error)
+        worker.finished.connect(lambda: self._cleanup_workflow_worker(worker))
+        self.workflow_workers.append(worker)
+        self.footer.set_message(f"Starting workflow: {goal}")
+        self.notifications.notify("workflow", f"Starting workflow: {goal}")
+        worker.start()
+
+    def _launch_workspace(self, workspace_key: str) -> None:
+        """Run a predefined companion workspace workflow."""
+        workspace = self.services.workspace_preparation.get_workspace(workspace_key)
+        worker = WorkflowExecutionWorker(
+            goal_planner=self.services.goal_planner,
+            workflow_execution=self.services.workflow_execution,
+            goal=workspace.workflow_plan.goal,
+            plan=workspace.workflow_plan,
+        )
+        worker.started_workflow.connect(self._handle_workflow_started)
+        worker.completed.connect(self._handle_workflow_completed)
+        worker.failed.connect(self._handle_workflow_error)
+        worker.finished.connect(lambda: self._cleanup_workflow_worker(worker))
+        self.workflow_workers.append(worker)
+        self.footer.set_message(f"Launching workspace: {workspace.name}")
+        self.services.daily_timeline.record_item(
+            "workspace_launch",
+            workspace.name,
+            "Workspace launch requested.",
+            source_id=workspace.key,
+        )
+        worker.start()
+
+    def _pause_workflow(self, workflow_id: str) -> None:
+        if not workflow_id:
+            return
+        self.services.workflow_execution.pause_workflow(workflow_id)
+        self.footer.set_message("Workflow paused")
+        self._refresh_workflow_panel()
+
+    def _resume_workflow(self, workflow_id: str) -> None:
+        if not workflow_id:
+            return
+        self.services.workflow_execution.resume_workflow(workflow_id)
+        self.footer.set_message("Workflow resumed")
+        self._refresh_workflow_panel()
+
+    def _cancel_workflow(self, workflow_id: str) -> None:
+        if not workflow_id:
+            return
+        self.services.workflow_execution.cancel_workflow(workflow_id)
+        self.footer.set_message("Workflow cancellation requested")
+        self.notifications.notify("workflow", "Workflow cancellation requested")
+        self._refresh_workflow_panel()
+
+    def _handle_workflow_started(self, workflow_id: str, name: str) -> None:
+        self.dashboard_page.workflow_panel.mark_starting(workflow_id, name)
+        self.footer.set_message(f"Workflow running: {name}")
+
+    def _handle_workflow_completed(self, result) -> None:
+        message = result.reflection_summary or result.message
+        self.footer.set_message(message)
+        self.notifications.notify(result.status, message)
+        try:
+            snapshot = self.services.workflow_state.snapshot(result.workflow_id)
+            self.services.daily_timeline.record_workflow_event(
+                snapshot.workflow.name,
+                result.status,
+                result.workflow_id,
+            )
+        except Exception:
+            logger.exception("Failed to record workflow timeline item")
+        self._refresh_workflow_panel()
+        self._refresh_companion_experience(force=True)
+
+    def _handle_workflow_error(self, message: str) -> None:
+        self.footer.set_message(f"Workflow failed: {message}")
+        self.notifications.notify("workflow_failed", message)
+        self._refresh_workflow_panel()
+
+    def _cleanup_workflow_worker(self, worker: WorkflowExecutionWorker) -> None:
+        if worker in self.workflow_workers:
+            self.workflow_workers.remove(worker)
+        worker.deleteLater()
+
+    def _refresh_workflow_panel(self) -> None:
+        """Refresh workflow UI from persisted state."""
+        try:
+            self.dashboard_page.workflow_panel.update_active_workflows(
+                self.services.workflow_state.list_active_workflows(limit=5)
+            )
+            self.dashboard_page.workflow_panel.update_history(
+                self.services.workflow_state.list_history(limit=8)
+            )
+        except Exception:
+            logger.exception("Workflow panel refresh failed")
+
+    def _refresh_platform_runtime(self) -> None:
+        """Refresh platform health and performance samples."""
+        try:
+            sample = self.services.performance_monitor.sample(self.services.event_bus)
+            health = self.services.observability.health_report()
+            self.services.app_state.update_domain(
+                "health",
+                {
+                    "status": health.status,
+                    "degraded": health.degraded,
+                    "memory_mb": sample.memory_mb,
+                    "worker_count": sample.worker_count,
+                    "alerts": sample.alerts,
+                },
+            )
+            self.diagnostics_page.refresh()
+            self._refresh_companion_experience()
+        except Exception:
+            logger.exception("Platform runtime refresh failed")
+
+    def _refresh_companion_experience(self, force: bool = False) -> None:
+        """Refresh daily companion panels on a gentle cadence."""
+        if not self.settings.companion_enabled:
+            return
+
+        now = time.monotonic()
+        interval = max(self.settings.companion_briefing_refresh_minutes * 60, 60)
+        if not force and now - self._last_companion_refresh < interval:
+            return
+
+        self._last_companion_refresh = now
+        try:
+            greeting = self.services.companion_interactions.greeting()
+            self.services.companion_interactions.maybe_emit(
+                greeting,
+                cooldown_seconds=20 * 3600,
+            )
+            briefing = self.services.startup_briefings.generate()
+            reflection = self.services.daily_reflections.generate()
+            timeline = self.services.daily_timeline.generate_for_day()
+            workspaces = self.services.workspace_preparation.list_workspaces()
+            contextual = self.services.contextual_recommendations.generate()
+            messages = self.services.companion_interactions.recent_feed(limit=5)
+            self.dashboard_page.update_companion_experience(
+                briefing,
+                reflection,
+                timeline,
+                workspaces,
+                messages,
+                contextual,
+            )
+        except Exception:
+            logger.exception("Companion experience refresh failed")
 
     def _poll_observer(self, force_proactive: bool = False) -> None:
         """Poll observer state and update lightweight UI indicators."""

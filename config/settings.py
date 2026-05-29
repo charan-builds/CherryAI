@@ -93,6 +93,27 @@ class AppSettings:
     working_memory_ttl_minutes: int = 240
     semantic_memory_min_confidence: float = 0.35
     memory_prune_batch_size: int = 100
+    workflow_default_retries: int = 1
+    workflow_max_retries: int = 3
+    workflow_step_timeout_seconds: float = 15.0
+    workflow_max_steps: int = 20
+    workflow_ai_planning_enabled: bool = False
+    workflow_scheduler_poll_seconds: float = 30.0
+    performance_monitor_interval_seconds: float = 5.0
+    performance_memory_warning_mb: float = 1024.0
+    performance_event_rate_warning_per_minute: int = 600
+    sandbox_safe_mode_default: bool = False
+    sandbox_emergency_stop_default: bool = False
+    sandbox_rate_limit_max_calls: int = 20
+    sandbox_rate_limit_window_seconds: float = 60.0
+    user_display_name: str = "Charan"
+    companion_enabled: bool = True
+    companion_message_cooldown_seconds: float = 1800.0
+    companion_briefing_refresh_minutes: int = 60
+    knowledge_memory_enabled: bool = True
+    knowledge_max_text_chars: int = 120000
+    knowledge_project_file_limit: int = 80
+    knowledge_ocr_sidecar_enabled: bool = True
 
 
 def load_settings() -> AppSettings:
@@ -262,6 +283,88 @@ def load_settings() -> AppSettings:
         memory_prune_batch_size=_as_int(
             os.getenv("CHERRY_MEMORY_PRUNE_BATCH_SIZE"),
             default=100,
+        ),
+        workflow_default_retries=_as_int(
+            os.getenv("CHERRY_WORKFLOW_DEFAULT_RETRIES"),
+            default=1,
+        ),
+        workflow_max_retries=_as_int(
+            os.getenv("CHERRY_WORKFLOW_MAX_RETRIES"),
+            default=3,
+        ),
+        workflow_step_timeout_seconds=_as_float(
+            os.getenv("CHERRY_WORKFLOW_STEP_TIMEOUT_SECONDS"),
+            default=15.0,
+        ),
+        workflow_max_steps=_as_int(
+            os.getenv("CHERRY_WORKFLOW_MAX_STEPS"),
+            default=20,
+        ),
+        workflow_ai_planning_enabled=_as_bool(
+            os.getenv("CHERRY_WORKFLOW_AI_PLANNING_ENABLED"),
+            default=False,
+        ),
+        workflow_scheduler_poll_seconds=_as_float(
+            os.getenv("CHERRY_WORKFLOW_SCHEDULER_POLL_SECONDS"),
+            default=30.0,
+        ),
+        performance_monitor_interval_seconds=_as_float(
+            os.getenv("CHERRY_PERFORMANCE_MONITOR_INTERVAL_SECONDS"),
+            default=5.0,
+        ),
+        performance_memory_warning_mb=_as_float(
+            os.getenv("CHERRY_PERFORMANCE_MEMORY_WARNING_MB"),
+            default=1024.0,
+        ),
+        performance_event_rate_warning_per_minute=_as_int(
+            os.getenv("CHERRY_PERFORMANCE_EVENT_RATE_WARNING_PER_MINUTE"),
+            default=600,
+        ),
+        sandbox_safe_mode_default=_as_bool(
+            os.getenv("CHERRY_SANDBOX_SAFE_MODE_DEFAULT"),
+            default=False,
+        ),
+        sandbox_emergency_stop_default=_as_bool(
+            os.getenv("CHERRY_SANDBOX_EMERGENCY_STOP_DEFAULT"),
+            default=False,
+        ),
+        sandbox_rate_limit_max_calls=_as_int(
+            os.getenv("CHERRY_SANDBOX_RATE_LIMIT_MAX_CALLS"),
+            default=20,
+        ),
+        sandbox_rate_limit_window_seconds=_as_float(
+            os.getenv("CHERRY_SANDBOX_RATE_LIMIT_WINDOW_SECONDS"),
+            default=60.0,
+        ),
+        user_display_name=os.getenv("CHERRY_USER_DISPLAY_NAME", "Charan").strip()
+        or "there",
+        companion_enabled=_as_bool(
+            os.getenv("CHERRY_COMPANION_ENABLED"),
+            default=True,
+        ),
+        companion_message_cooldown_seconds=_as_float(
+            os.getenv("CHERRY_COMPANION_MESSAGE_COOLDOWN_SECONDS"),
+            default=1800.0,
+        ),
+        companion_briefing_refresh_minutes=_as_int(
+            os.getenv("CHERRY_COMPANION_BRIEFING_REFRESH_MINUTES"),
+            default=60,
+        ),
+        knowledge_memory_enabled=_as_bool(
+            os.getenv("CHERRY_KNOWLEDGE_MEMORY_ENABLED"),
+            default=True,
+        ),
+        knowledge_max_text_chars=_as_int(
+            os.getenv("CHERRY_KNOWLEDGE_MAX_TEXT_CHARS"),
+            default=120000,
+        ),
+        knowledge_project_file_limit=_as_int(
+            os.getenv("CHERRY_KNOWLEDGE_PROJECT_FILE_LIMIT"),
+            default=80,
+        ),
+        knowledge_ocr_sidecar_enabled=_as_bool(
+            os.getenv("CHERRY_KNOWLEDGE_OCR_SIDECAR_ENABLED"),
+            default=True,
         ),
     )
 

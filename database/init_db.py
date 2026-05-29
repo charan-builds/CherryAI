@@ -12,11 +12,13 @@ from database.automation_models import (  # noqa: F401
     ToolExecutionLog,
 )
 from database.base import Base
+from database.companion_models import CompanionInteractionLog, DailyTimelineEntry  # noqa: F401
 from database.memory_models import (  # noqa: F401
     ConsolidatedMemoryPattern,
     SemanticMemory,
     WorkingMemoryState,
 )
+from database.knowledge_models import KnowledgeMemory  # noqa: F401
 from database.models import AppMetadata
 from database.observer_models import ActivityLog, ObserverEventLog, StudySession  # noqa: F401
 from database.proactive_models import (  # noqa: F401
@@ -26,6 +28,14 @@ from database.proactive_models import (  # noqa: F401
 )
 from database.session import create_database_engine, create_session_factory
 from database.task_models import Task  # noqa: F401 - imported so metadata is registered
+from database.workflow_models import (  # noqa: F401
+    ScheduledWorkflow,
+    Workflow,
+    WorkflowExecutionLog,
+    WorkflowHistory,
+    WorkflowMemory,
+    WorkflowStep,
+)
 
 logger = logging.getLogger(__name__)
 

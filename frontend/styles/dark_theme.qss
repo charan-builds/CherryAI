@@ -98,7 +98,9 @@ QStackedWidget#ContentStack {
 QFrame#DashboardPage,
 QFrame#PlaceholderPage,
 QFrame#TasksPage,
-QFrame#StudyModePage {
+QFrame#StudyModePage,
+QFrame#DiagnosticsPage,
+QFrame#KnowledgeCenterPage {
     background: transparent;
 }
 
@@ -116,6 +118,60 @@ QFrame#MemoryInsightsPanel {
     background: #17191f;
     border: 1px solid #2a2d35;
     border-radius: 8px;
+}
+
+QFrame#WorkflowPanel {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QFrame#CompanionPanel {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QFrame#KnowledgePanel {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QLabel#CompanionText {
+    color: #d8d2cc;
+    line-height: 145%;
+}
+
+QLabel#KnowledgeText {
+    color: #d8d2cc;
+    line-height: 145%;
+}
+
+QFrame#DiagnosticsPanel,
+QGroupBox#DiagnosticsGroup {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+    color: #d8d2cc;
+    font-weight: 700;
+}
+
+QGroupBox#DiagnosticsGroup {
+    margin-top: 10px;
+    padding: 10px;
+}
+
+QGroupBox#DiagnosticsGroup::title {
+    color: #ffffff;
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+}
+
+QLabel#DiagnosticsText {
+    color: #a9afbd;
+    font-weight: 400;
 }
 
 QFrame#TaskSidePanel {
@@ -207,7 +263,10 @@ QLineEdit#CommandInput:focus {
 
 QLineEdit#TaskTitleInput,
 QLineEdit#StudyTopicInput,
+QLineEdit#WorkflowGoalInput,
+QLineEdit#KnowledgePathInput,
 QTextEdit#TaskDescriptionInput,
+QTextEdit#KnowledgeNotesInput,
 QComboBox#TaskPriorityCombo,
 QComboBox#TaskFilterCombo {
     background: #111319;
@@ -221,9 +280,17 @@ QTextEdit#TaskDescriptionInput {
     selection-background-color: #b74a5f;
 }
 
+QTextEdit#KnowledgeNotesInput {
+    min-height: 140px;
+    selection-background-color: #b74a5f;
+}
+
 QLineEdit#TaskTitleInput:focus,
 QLineEdit#StudyTopicInput:focus,
+QLineEdit#WorkflowGoalInput:focus,
+QLineEdit#KnowledgePathInput:focus,
 QTextEdit#TaskDescriptionInput:focus,
+QTextEdit#KnowledgeNotesInput:focus,
 QComboBox#TaskPriorityCombo:focus,
 QComboBox#TaskFilterCombo:focus {
     border: 1px solid #b74a5f;
@@ -408,6 +475,28 @@ QLabel#StudyAutomationHistory {
     border-radius: 8px;
     color: #a9afbd;
     padding: 10px 12px;
+}
+
+QLabel#WorkflowHistoryLabel {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #a9afbd;
+    padding: 10px 12px;
+}
+
+QProgressBar#WorkflowProgress {
+    background: #111319;
+    border: 1px solid #343946;
+    border-radius: 8px;
+    color: #ffffff;
+    height: 16px;
+    text-align: center;
+}
+
+QProgressBar#WorkflowProgress::chunk {
+    background: #3b8a5d;
+    border-radius: 7px;
 }
 
 QCheckBox#TaskCompleteCheck {
