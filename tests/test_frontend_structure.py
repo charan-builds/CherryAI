@@ -7,6 +7,7 @@ def test_frontend_navigation_sections_are_defined():
 
     assert labels == [
         "Dashboard",
+        "Workspace Center",
         "Tasks",
         "Study Mode",
         "Memory",

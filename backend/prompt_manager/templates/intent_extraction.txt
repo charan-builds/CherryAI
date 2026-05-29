@@ -11,6 +11,7 @@ Supported intents:
 - take_screenshot
 - start_study_workspace
 - start_workflow
+- resume_status
 - general_chat
 
 For create_task, include title, description, and priority when available.
@@ -21,6 +22,8 @@ For play_music, include query or playlist_url.
 For start_study_workspace, include topic and optional app_name.
 For start_workflow, include goal. Use start_workflow when the user asks Cherry
 to prepare, run, orchestrate, schedule, or execute a multi-step workflow.
+Use resume_status when the user asks what they were doing, what is pending,
+where they stopped, or how to continue where they left off.
 
 Return this shape:
 {{"intent":"create_task","title":"study numpy","description":"","priority":"normal"}}

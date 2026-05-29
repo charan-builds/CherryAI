@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from backend.action_router.schemas import RoutedActionResult
 from backend.automation_engine.schemas import AutomationResult
 from backend.intent_parser.schemas import ParsedIntent
+from backend.operating_context_manager.schemas import ResumeSummary
 from backend.ollama_service.service import OllamaGenerationError, OllamaService
 from backend.prompt_manager.service import PromptManager
 from backend.task_engine.schemas import DailyTaskSummary, TaskRecord, TaskStatistics
@@ -59,6 +60,9 @@ class AIResponseHandler:
 
         if parsed_intent.intent == "start_workflow":
             return self._format_workflow_response(action_result)
+
+        if parsed_intent.intent == "resume_status":
+            return self._format_resume_response(action_result)
 
         if parsed_intent.intent == "motivational_response":
             return self._ollama_or_fallback(
@@ -160,3 +164,9 @@ class AIResponseHandler:
         if result.reflection_summary:
             lines.append(result.reflection_summary)
         return "\n".join(lines)
+
+    def _format_resume_response(self, action_result: RoutedActionResult) -> str:
+        summary = action_result.data.get("resume_summary")
+        if not isinstance(summary, ResumeSummary):
+            return action_result.message
+        return summary.as_text()

@@ -8,6 +8,7 @@ from config.settings import AppSettings
 from backend.application_state_manager.service import ApplicationStateManager
 from backend.ai_engine.service import AIEngine
 from backend.analytics_engine.service import AnalyticsEngine
+from backend.activity_snapshot_manager.service import ActivitySnapshotManager
 from backend.automation_engine.service import AutomationEngine
 from backend.behavioral_pattern_engine.service import BehavioralPatternEngine
 from backend.centralized_event_bus.service import CentralizedEventBus
@@ -21,6 +22,7 @@ from backend.code_intelligence_engine.service import CodeIntelligenceEngine
 from backend.content_summarization_engine.service import ContentSummarizationEngine
 from backend.contextual_recommendation_engine.service import ContextualRecommendationEngine
 from backend.context_understanding_engine.service import ContextUnderstandingEngine
+from backend.context_switching_engine.service import ContextSwitchingEngine
 from backend.daily_summary_engine.service import DailySummaryEngine
 from backend.daily_reflection_engine.service import DailyReflectionEngine
 from backend.daily_timeline_manager.service import DailyTimelineManager
@@ -38,6 +40,7 @@ from backend.notification_engine.service import NotificationEngine
 from backend.observability_engine.service import ObservabilityEngine
 from backend.observer_engine.service import ObserverEngine
 from backend.observer_engine.observer_event_bus.events import SUPPORTED_OBSERVER_EVENTS
+from backend.operating_context_manager.service import OperatingContextManager
 from backend.performance_monitor.schemas import PerformanceThresholds
 from backend.performance_monitor.service import PerformanceMonitor
 from backend.planner_engine.service import PlannerEngine
@@ -45,7 +48,9 @@ from backend.productivity_analyzer.service import ProductivityAnalyzer
 from backend.recommendation_engine.repository import RecommendationLogRepository
 from backend.recommendation_engine.service import RecommendationEngine
 from backend.reflection_engine.service import ReflectionEngine
+from backend.resume_engine.service import ResumeEngine
 from backend.screen_intelligence_engine.service import ScreenIntelligenceEngine
+from backend.session_recovery_engine.service import SessionRecoveryEngine
 from backend.task_engine.service import TaskEngine
 from backend.workflow_execution_engine.service import WorkflowExecutionEngine
 from backend.workflow_memory_manager.service import WorkflowMemoryManager
@@ -56,6 +61,7 @@ from backend.workflow_validator.service import WorkflowValidator
 from backend.structured_config_system.service import StructuredConfigSystem
 from backend.startup_briefing_engine.service import StartupBriefingEngine
 from backend.workspace_preparation_engine.service import WorkspacePreparationEngine
+from backend.workspace_profile_manager.service import WorkspaceProfileManager
 
 
 @dataclass
@@ -103,6 +109,12 @@ class ServiceRegistry:
     code_intelligence: CodeIntelligenceEngine
     screen_intelligence: ScreenIntelligenceEngine
     knowledge_memory: KnowledgeMemoryManager
+    operating_context: OperatingContextManager
+    workspace_profiles: WorkspaceProfileManager
+    activity_snapshots: ActivitySnapshotManager
+    context_switching: ContextSwitchingEngine
+    session_recovery: SessionRecoveryEngine
+    resume_engine: ResumeEngine
 
 
 def build_services(settings: AppSettings) -> ServiceRegistry:
@@ -132,6 +144,11 @@ def build_services(settings: AppSettings) -> ServiceRegistry:
     event_bus.subscribe(observability.handle_event, name="observability_engine")
 
     memory = MemoryEngine(settings=settings, event_bus=event_bus)
+    operating_context = OperatingContextManager(
+        settings=settings,
+        memory_engine=memory,
+    )
+    workspace_profiles = WorkspaceProfileManager(settings=settings)
     content_summarization = ContentSummarizationEngine()
     context_understanding = ContextUnderstandingEngine()
     document_intelligence = DocumentIntelligenceEngine(
@@ -239,6 +256,39 @@ def build_services(settings: AppSettings) -> ServiceRegistry:
         settings=settings,
         goal_planner=goal_planner,
     )
+    activity_snapshots = ActivitySnapshotManager(
+        settings=settings,
+        operating_context=operating_context,
+        workflow_state=workflow_state,
+        task_engine=tasks,
+        observer_engine=observer,
+    )
+    context_switching = ContextSwitchingEngine(
+        settings=settings,
+        operating_context=operating_context,
+        workspace_profiles=workspace_profiles,
+        snapshots=activity_snapshots,
+        workflow_state=workflow_state,
+        workflow_execution=workflow_execution,
+        task_engine=tasks,
+    )
+    session_recovery = SessionRecoveryEngine(
+        settings=settings,
+        operating_context=operating_context,
+        snapshots=activity_snapshots,
+        workflow_state=workflow_state,
+        workflow_execution=workflow_execution,
+        task_engine=tasks,
+        observer_engine=observer,
+    )
+    resume_engine = ResumeEngine(
+        settings=settings,
+        operating_context=operating_context,
+        snapshots=activity_snapshots,
+        workflow_state=workflow_state,
+        task_engine=tasks,
+        observer_engine=observer,
+    )
     daily_timeline = DailyTimelineManager(settings=settings)
     companion_interactions = CompanionInteractionManager(settings=settings)
     startup_briefings = StartupBriefingEngine(
@@ -263,6 +313,7 @@ def build_services(settings: AppSettings) -> ServiceRegistry:
     workspace_preparation = WorkspacePreparationEngine(settings=settings)
     ai.action_router.goal_planner = goal_planner
     ai.action_router.workflow_execution_engine = workflow_execution
+    ai.action_router.resume_engine = resume_engine
     lifecycle.register("event_bus")
     lifecycle.register("application_state", dependencies=("event_bus",))
     lifecycle.register("observability", dependencies=("application_state",))
@@ -315,4 +366,10 @@ def build_services(settings: AppSettings) -> ServiceRegistry:
         code_intelligence=code_intelligence,
         screen_intelligence=screen_intelligence,
         knowledge_memory=knowledge_memory,
+        operating_context=operating_context,
+        workspace_profiles=workspace_profiles,
+        activity_snapshots=activity_snapshots,
+        context_switching=context_switching,
+        session_recovery=session_recovery,
+        resume_engine=resume_engine,
     )

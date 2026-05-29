@@ -35,6 +35,10 @@ from frontend.knowledge.knowledge_center_page import KnowledgeCenterPage
 from frontend.notifications.notification_center import NotificationCenter
 from frontend.study.study_page import StudyModePage
 from frontend.tasks.tasks_page import TasksPage
+from frontend.workspace.workspace_center import (
+    SessionRecoveryDialog,
+    WorkspaceCenterPage,
+)
 from frontend.workflows.workflow_worker import WorkflowExecutionWorker
 from frontend.widgets.page_placeholder import PlaceholderPage
 from frontend.widgets.sidebar import SidebarNavigation
@@ -60,6 +64,12 @@ SECTIONS: tuple[SectionDefinition, ...] = (
         title="Dashboard",
         subtitle="Chat workspace and local system overview",
         placeholder="Assistant console, local readiness, and future system cards.",
+    ),
+    SectionDefinition(
+        key="workspace",
+        title="Workspace Center",
+        subtitle="Restore sessions, switch contexts, and resume active work",
+        placeholder="Workspace Center",
     ),
     SectionDefinition(
         key="tasks",
@@ -114,6 +124,7 @@ class MainWindow(QMainWindow):
         self.workflow_workers: list[WorkflowExecutionWorker] = []
         self._last_proactive_refresh = 0.0
         self._last_companion_refresh = 0.0
+        self._last_activity_snapshot = 0.0
 
         self.section_lookup = {section.key: section for section in SECTIONS}
         self.pages: dict[str, QWidget] = {}
@@ -130,6 +141,7 @@ class MainWindow(QMainWindow):
         self.notifications = NotificationCenter()
 
         self.dashboard_page = DashboardPage()
+        self.workspace_center_page = WorkspaceCenterPage()
         self.tasks_page = TasksPage(task_engine=services.tasks)
         self.diagnostics_page = DiagnosticsPage(services=services)
         self.knowledge_page = KnowledgeCenterPage(services=services)
@@ -165,6 +177,8 @@ class MainWindow(QMainWindow):
         for section in SECTIONS:
             if section.key == "dashboard":
                 page = self.dashboard_page
+            elif section.key == "workspace":
+                page = self.workspace_center_page
             elif section.key == "tasks":
                 page = self.tasks_page
             elif section.key == "study":
@@ -216,6 +230,21 @@ class MainWindow(QMainWindow):
         self.dashboard_page.workflow_resume_requested.connect(self._resume_workflow)
         self.dashboard_page.workflow_cancel_requested.connect(self._cancel_workflow)
         self.dashboard_page.workspace_requested.connect(self._launch_workspace)
+        self.workspace_center_page.workspace_selected.connect(
+            self._switch_operating_workspace
+        )
+        self.workspace_center_page.context_save_requested.connect(
+            self._save_operating_context
+        )
+        self.workspace_center_page.context_switch_requested.connect(
+            self._switch_saved_context
+        )
+        self.workspace_center_page.recovery_requested.connect(
+            self._show_session_recovery_dialog
+        )
+        self.workspace_center_page.custom_workspace_requested.connect(
+            self._create_custom_workspace
+        )
         self.observer_timer.timeout.connect(self._poll_observer)
         self.workflow_timer.timeout.connect(self._refresh_workflow_panel)
         self.platform_timer.timeout.connect(self._refresh_platform_runtime)
@@ -243,6 +272,9 @@ class MainWindow(QMainWindow):
         elif key == "tasks":
             self.tasks_page.refresh_tasks()
             self.footer.set_message("Task workspace ready")
+        elif key == "workspace":
+            self._refresh_workspace_center()
+            self.footer.set_message("Workspace Center ready")
         elif key == "study":
             self.study_page.update_status(self.services.observer.get_status())
             self.footer.set_message("Study Mode ready")
@@ -266,6 +298,7 @@ class MainWindow(QMainWindow):
         self._refresh_workflow_panel()
         self._refresh_platform_runtime()
         self._refresh_companion_experience(force=True)
+        self._refresh_workspace_center()
 
     def _handle_notification(self, level: str, message: str) -> None:
         """Handle local UI notifications."""
@@ -306,6 +339,8 @@ class MainWindow(QMainWindow):
             self.tasks_page.refresh_tasks()
         if result.detected_intent == "start_workflow":
             self._refresh_workflow_panel()
+        if result.detected_intent == "resume_status":
+            self._refresh_workspace_center()
 
     def _handle_ai_error(self, message: str) -> None:
         """Render a worker-level error."""
@@ -362,30 +397,121 @@ class MainWindow(QMainWindow):
         )
         worker.start()
 
+    def _switch_operating_workspace(self, workspace_key: str) -> None:
+        """Switch the active personal operating workspace."""
+        try:
+            result = self.services.context_switching.switch_workspace(workspace_key)
+            self.footer.set_message(result.message)
+            self.notifications.notify("workspace", result.message)
+            self.services.daily_timeline.record_item(
+                "context_switch",
+                result.message,
+                "Operating workspace switched.",
+                source_id=workspace_key,
+            )
+        except Exception as exc:
+            logger.exception("Workspace switch failed")
+            self.footer.set_message(f"Workspace switch failed: {exc}")
+        self._refresh_workspace_center()
+
+    def _create_custom_workspace(self, name: str, focus_area: str) -> None:
+        """Create a custom workspace profile and activate it."""
+        try:
+            profile = self.services.workspace_profiles.create_custom_workspace(
+                name=name,
+                focus_area=focus_area or name,
+                operating_mode="custom",
+            )
+            self.services.context_switching.switch_workspace(profile.key)
+            self.footer.set_message(f"Created workspace: {profile.name}")
+        except Exception as exc:
+            logger.exception("Custom workspace creation failed")
+            self.footer.set_message(f"Could not create workspace: {exc}")
+        self._refresh_workspace_center()
+
+    def _save_operating_context(self) -> None:
+        """Persist the current context for later switching."""
+        try:
+            saved = self.services.context_switching.save_current_context()
+            self.footer.set_message(f"Context saved: {saved.name}")
+        except Exception as exc:
+            logger.exception("Context save failed")
+            self.footer.set_message(f"Could not save context: {exc}")
+        self._refresh_workspace_center()
+
+    def _switch_saved_context(self, context_key: str) -> None:
+        """Restore a previously saved context."""
+        try:
+            result = self.services.context_switching.switch_context(context_key)
+            self.footer.set_message(result.message)
+            self.notifications.notify("context", result.message)
+        except Exception as exc:
+            logger.exception("Saved context switch failed")
+            self.footer.set_message(f"Could not switch context: {exc}")
+        self._refresh_workspace_center()
+
+    def _show_session_recovery_dialog(self) -> None:
+        """Open the session recovery dialog."""
+        plan = self.services.session_recovery.recovery_plan()
+        dialog = SessionRecoveryDialog(plan, self)
+        dialog.restore_requested.connect(self._restore_session)
+        dialog.exec()
+
+    def _restore_session(self, resume_workflows: bool) -> None:
+        """Restore persisted session state."""
+        try:
+            plan = self.services.session_recovery.restore_session(
+                resume_workflows=resume_workflows
+            )
+            self.footer.set_message(plan.summary)
+            self.notifications.notify("recovery", "Session context restored")
+        except Exception as exc:
+            logger.exception("Session recovery failed")
+            self.footer.set_message(f"Session recovery failed: {exc}")
+        self._refresh_workspace_center()
+
     def _pause_workflow(self, workflow_id: str) -> None:
         if not workflow_id:
             return
         self.services.workflow_execution.pause_workflow(workflow_id)
+        self.services.activity_snapshots.take_snapshot(
+            metadata={"workflow_paused": workflow_id}
+        )
         self.footer.set_message("Workflow paused")
         self._refresh_workflow_panel()
+        self._refresh_workspace_center()
 
     def _resume_workflow(self, workflow_id: str) -> None:
         if not workflow_id:
             return
         self.services.workflow_execution.resume_workflow(workflow_id)
+        self.services.operating_context.set_active_workflow(workflow_id)
+        self.services.activity_snapshots.take_snapshot(
+            metadata={"workflow_resumed": workflow_id}
+        )
         self.footer.set_message("Workflow resumed")
         self._refresh_workflow_panel()
+        self._refresh_workspace_center()
 
     def _cancel_workflow(self, workflow_id: str) -> None:
         if not workflow_id:
             return
         self.services.workflow_execution.cancel_workflow(workflow_id)
+        self.services.operating_context.update_context(active_workflow_id="")
+        self.services.activity_snapshots.take_snapshot(
+            metadata={"workflow_cancelled": workflow_id}
+        )
         self.footer.set_message("Workflow cancellation requested")
         self.notifications.notify("workflow", "Workflow cancellation requested")
         self._refresh_workflow_panel()
+        self._refresh_workspace_center()
 
     def _handle_workflow_started(self, workflow_id: str, name: str) -> None:
         self.dashboard_page.workflow_panel.mark_starting(workflow_id, name)
+        self.services.operating_context.set_active_workflow(workflow_id)
+        self.services.activity_snapshots.take_snapshot(
+            metadata={"workflow_started": name}
+        )
         self.footer.set_message(f"Workflow running: {name}")
 
     def _handle_workflow_completed(self, result) -> None:
@@ -401,7 +527,12 @@ class MainWindow(QMainWindow):
             )
         except Exception:
             logger.exception("Failed to record workflow timeline item")
+        self.services.operating_context.update_context(active_workflow_id="")
+        self.services.activity_snapshots.take_snapshot(
+            metadata={"workflow_completed": result.status}
+        )
         self._refresh_workflow_panel()
+        self._refresh_workspace_center()
         self._refresh_companion_experience(force=True)
 
     def _handle_workflow_error(self, message: str) -> None:
@@ -426,6 +557,20 @@ class MainWindow(QMainWindow):
         except Exception:
             logger.exception("Workflow panel refresh failed")
 
+    def _refresh_workspace_center(self) -> None:
+        """Refresh Personal OS UI from persisted operating state."""
+        try:
+            self.workspace_center_page.update_state(
+                profiles=self.services.workspace_profiles.list_profiles(),
+                context=self.services.operating_context.current_context(),
+                resume_summary=self.services.resume_engine.generate_summary(),
+                saved_contexts=self.services.context_switching.list_saved_contexts(),
+                recovery_plan=self.services.session_recovery.recovery_plan(),
+                snapshots=self.services.activity_snapshots.list_snapshots(limit=8),
+            )
+        except Exception:
+            logger.exception("Workspace Center refresh failed")
+
     def _refresh_platform_runtime(self) -> None:
         """Refresh platform health and performance samples."""
         try:
@@ -443,8 +588,20 @@ class MainWindow(QMainWindow):
             )
             self.diagnostics_page.refresh()
             self._refresh_companion_experience()
+            self._maybe_take_activity_snapshot()
         except Exception:
             logger.exception("Platform runtime refresh failed")
+
+    def _maybe_take_activity_snapshot(self) -> None:
+        """Take periodic Personal OS snapshots on a gentle cadence."""
+        now = time.monotonic()
+        interval = max(self.settings.personal_os_snapshot_interval_seconds, 15.0)
+        if now - self._last_activity_snapshot < interval:
+            return
+        self._last_activity_snapshot = now
+        self.services.activity_snapshots.take_snapshot()
+        if self.current_section == "workspace":
+            self._refresh_workspace_center()
 
     def _refresh_companion_experience(self, force: bool = False) -> None:
         """Refresh daily companion panels on a gentle cadence."""
@@ -484,6 +641,10 @@ class MainWindow(QMainWindow):
         """Poll observer state and update lightweight UI indicators."""
         status = self.services.observer.sample_once()
         self.services.memory.update_observer_status(status)
+        if status.active_study_session is not None:
+            self.services.operating_context.set_active_study_session(
+                status.active_study_session.id
+            )
         self.study_page.update_status(status)
         self.dashboard_page.update_observer_summary(status)
         self.footer.set_context(

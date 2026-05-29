@@ -110,6 +110,7 @@ class AppSettings:
     companion_enabled: bool = True
     companion_message_cooldown_seconds: float = 1800.0
     companion_briefing_refresh_minutes: int = 60
+    personal_os_snapshot_interval_seconds: float = 60.0
     knowledge_memory_enabled: bool = True
     knowledge_max_text_chars: int = 120000
     knowledge_project_file_limit: int = 80
@@ -349,6 +350,10 @@ def load_settings() -> AppSettings:
         companion_briefing_refresh_minutes=_as_int(
             os.getenv("CHERRY_COMPANION_BRIEFING_REFRESH_MINUTES"),
             default=60,
+        ),
+        personal_os_snapshot_interval_seconds=_as_float(
+            os.getenv("CHERRY_PERSONAL_OS_SNAPSHOT_INTERVAL_SECONDS"),
+            default=60.0,
         ),
         knowledge_memory_enabled=_as_bool(
             os.getenv("CHERRY_KNOWLEDGE_MEMORY_ENABLED"),

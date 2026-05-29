@@ -100,7 +100,8 @@ QFrame#PlaceholderPage,
 QFrame#TasksPage,
 QFrame#StudyModePage,
 QFrame#DiagnosticsPage,
-QFrame#KnowledgeCenterPage {
+QFrame#KnowledgeCenterPage,
+QFrame#WorkspaceCenterPage {
     background: transparent;
 }
 
@@ -133,6 +134,12 @@ QFrame#CompanionPanel {
 }
 
 QFrame#KnowledgePanel {
+    background: #17191f;
+    border: 1px solid #2a2d35;
+    border-radius: 8px;
+}
+
+QFrame#OperatingPanel {
     background: #17191f;
     border: 1px solid #2a2d35;
     border-radius: 8px;
@@ -264,11 +271,13 @@ QLineEdit#CommandInput:focus {
 QLineEdit#TaskTitleInput,
 QLineEdit#StudyTopicInput,
 QLineEdit#WorkflowGoalInput,
+QLineEdit#OperatingTextInput,
 QLineEdit#KnowledgePathInput,
 QTextEdit#TaskDescriptionInput,
 QTextEdit#KnowledgeNotesInput,
 QComboBox#TaskPriorityCombo,
-QComboBox#TaskFilterCombo {
+QComboBox#TaskFilterCombo,
+QComboBox#OperatingContextCombo {
     background: #111319;
     border: 1px solid #343946;
     border-radius: 8px;
@@ -288,22 +297,26 @@ QTextEdit#KnowledgeNotesInput {
 QLineEdit#TaskTitleInput:focus,
 QLineEdit#StudyTopicInput:focus,
 QLineEdit#WorkflowGoalInput:focus,
+QLineEdit#OperatingTextInput:focus,
 QLineEdit#KnowledgePathInput:focus,
 QTextEdit#TaskDescriptionInput:focus,
 QTextEdit#KnowledgeNotesInput:focus,
 QComboBox#TaskPriorityCombo:focus,
-QComboBox#TaskFilterCombo:focus {
+QComboBox#TaskFilterCombo:focus,
+QComboBox#OperatingContextCombo:focus {
     border: 1px solid #b74a5f;
 }
 
 QComboBox#TaskPriorityCombo::drop-down,
-QComboBox#TaskFilterCombo::drop-down {
+QComboBox#TaskFilterCombo::drop-down,
+QComboBox#OperatingContextCombo::drop-down {
     border: none;
     width: 24px;
 }
 
 QComboBox#TaskPriorityCombo QAbstractItemView,
-QComboBox#TaskFilterCombo QAbstractItemView {
+QComboBox#TaskFilterCombo QAbstractItemView,
+QComboBox#OperatingContextCombo QAbstractItemView {
     background: #17191f;
     border: 1px solid #343946;
     selection-background-color: #3a2028;
@@ -521,7 +534,13 @@ QScrollArea#TaskScrollArea {
     border: none;
 }
 
-QWidget#TaskScrollViewport {
+QScrollArea#WorkspaceScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QWidget#TaskScrollViewport,
+QWidget#WorkspaceScrollViewport {
     background: transparent;
 }
 

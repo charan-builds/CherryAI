@@ -25,6 +25,7 @@ SUPPORTED_INTENTS = {
     "take_screenshot",
     "start_study_workspace",
     "start_workflow",
+    "resume_status",
     "general_chat",
 }
 
@@ -111,6 +112,9 @@ class IntentParser:
 
         if "summarize" in normalized and "task" in normalized:
             return ParsedIntent(intent="summarize_tasks", raw={"source": "fallback"})
+
+        if self._looks_like_resume_request(normalized):
+            return ParsedIntent(intent="resume_status", raw={"source": "fallback"})
 
         if any(word in normalized for word in ("motivate", "motivation", "encourage")):
             return ParsedIntent(
@@ -215,6 +219,22 @@ class IntentParser:
         return (
             any(word in normalized for word in ("prepare", "setup", "set up", "start"))
             and any(word in normalized for word in ("study session", "focus session"))
+        )
+
+    def _looks_like_resume_request(self, normalized: str) -> bool:
+        return any(
+            phrase in normalized
+            for phrase in (
+                "what was i doing",
+                "what am i doing",
+                "what is pending",
+                "what's pending",
+                "where did i stop",
+                "where was i",
+                "resume my work",
+                "resume status",
+                "continue where i left off",
+            )
         )
 
     def _extract_workflow_goal(self, user_message: str) -> str:

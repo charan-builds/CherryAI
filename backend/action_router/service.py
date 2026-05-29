@@ -23,12 +23,16 @@ class ActionRouter:
     automation_engine: AutomationEngine | None = None
     goal_planner: GoalPlannerEngine | None = None
     workflow_execution_engine: WorkflowExecutionEngine | None = None
+    resume_engine: object | None = None
 
     def route(self, parsed_intent: ParsedIntent) -> RoutedActionResult:
         """Route an intent to the correct backend service."""
         try:
             if parsed_intent.intent == "start_workflow":
                 return self._route_workflow(parsed_intent)
+
+            if parsed_intent.intent == "resume_status":
+                return self._route_resume(parsed_intent)
 
             if parsed_intent.intent == "create_task":
                 task = self.task_engine.create_task(
@@ -140,4 +144,23 @@ class ActionRouter:
             success=result.success,
             message=result.message,
             data={"workflow_plan": plan, "workflow_result": result},
+        )
+
+    def _route_resume(self, parsed_intent: ParsedIntent) -> RoutedActionResult:
+        if self.resume_engine is None or not hasattr(
+            self.resume_engine,
+            "generate_summary",
+        ):
+            return RoutedActionResult(
+                intent=parsed_intent.intent,
+                success=False,
+                message="Resume engine is not available.",
+            )
+
+        summary = self.resume_engine.generate_summary()
+        return RoutedActionResult(
+            intent=parsed_intent.intent,
+            success=True,
+            message="Resume summary generated.",
+            data={"resume_summary": summary},
         )

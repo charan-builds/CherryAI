@@ -23,9 +23,11 @@ class SidebarNavigation(QFrame):
 
     ITEMS = (
         NavigationItem("dashboard", "Dashboard"),
+        NavigationItem("workspace", "Workspace Center"),
         NavigationItem("tasks", "Tasks"),
         NavigationItem("study", "Study Mode"),
         NavigationItem("memory", "Memory"),
+        NavigationItem("knowledge", "Knowledge"),
         NavigationItem("analytics", "Analytics"),
         NavigationItem("settings", "Settings"),
     )

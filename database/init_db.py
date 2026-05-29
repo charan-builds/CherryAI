@@ -21,6 +21,12 @@ from database.memory_models import (  # noqa: F401
 from database.knowledge_models import KnowledgeMemory  # noqa: F401
 from database.models import AppMetadata
 from database.observer_models import ActivityLog, ObserverEventLog, StudySession  # noqa: F401
+from database.operating_context_models import (  # noqa: F401
+    ActivitySnapshot,
+    OperatingContextState,
+    SavedOperatingContext,
+    WorkspaceProfile,
+)
 from database.proactive_models import (  # noqa: F401
     BehavioralPattern,
     ProductivitySummary,
